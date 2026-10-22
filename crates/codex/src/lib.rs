@@ -1,5 +1,6 @@
 pub mod accounts;
 pub mod app_server;
+mod request_metrics;
 pub mod automation_runner;
 pub mod config;
 pub mod env;

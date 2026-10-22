@@ -1,3 +1,5 @@
+<p align="center"><img src="branding/lemma-icon.svg" width="96" height="96" alt="Codex Lemma logo"></p>
+
 # Codex Lemma
 
 [简体中文](README.zh-CN.md) · [Download](https://github.com/liangshaobo2001/codex-lemma/releases) · [Build from source](CONTRIBUTING.md)
@@ -5,6 +7,10 @@
 Codex Lemma is an open-source Windows desktop workspace for Codex CLI. It puts conversations, model selection, files, Git changes, and a terminal in one GUI, with custom endpoints for locally hosted models.
 
 It is a focused fork of [Codexia v0.58.0](https://github.com/milisp/codexia/tree/v0.58.0), built with React and Tauri. Lemma is an independent community project, unaffiliated with OpenAI.
+
+![Codex Lemma workspace](docs/images/workspace-demo.jpg)
+
+*Development UI with a synthetic project, conversation, and statistics. No private session data is shown.*
 
 ## What is included
 

@@ -72,7 +72,8 @@ export interface EventsSlice {
     string,
     {
       turnId: string;
-      baselineOutputTokens: number | null;
+      requests: number;
+      ttftMs: number | null;
       outputTokens: number;
       durationMs: number | null;
       tokensPerSec: number | null;
@@ -88,6 +89,7 @@ export interface EventsSlice {
   addEvent: (threadId: string, event: ServerNotification) => void;
   markDenialApproved: (reviewId: string) => void;
   setTokenUsage: (threadId: string, data: ThreadTokenUsage) => void;
+  setRequestMetrics: (metrics: unknown) => void;
   setGoal: (threadId: string, goal: ThreadGoal) => void;
   clearGoal: (threadId: string) => void;
   setGoalEnabled: (goalEnabled: boolean) => void;

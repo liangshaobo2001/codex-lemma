@@ -8,6 +8,7 @@ import type {
   PermissionsRequest,
   RequestUserInputRequest,
 } from '@/components/codex/stores';
+import { useCodexStore } from '@/components/codex/stores/useCodexStore';
 
 // Diagnostics (local fork): the last 500 notifications, readable over WebView2's remote debugging port as
 // `window.__codexiaEvents`, so a view that stopped updating can be compared with what actually arrived.
@@ -93,6 +94,10 @@ export function useTauriEventListeners({
 
     void registerListener<PermissionsRequest>('codex/permissions-request', (event) => {
       handlersRef.current.onPermissionsRequest(event.payload);
+    });
+
+    void registerListener<unknown>('codex:request-metrics', (event) => {
+      useCodexStore.getState().setRequestMetrics(event.payload);
     });
 
     void registerListener<ServerNotification>('codex:notification', (event) => {

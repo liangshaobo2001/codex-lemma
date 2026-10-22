@@ -1,3 +1,5 @@
+<p align="center"><img src="branding/lemma-icon.svg" width="96" height="96" alt="Codex Lemma logo"></p>
+
 # Codex Lemma
 
 [English](README.md) · [下载安装](https://github.com/liangshaobo2001/codex-lemma/releases) · [源码构建](CONTRIBUTING.md)
@@ -5,6 +7,10 @@
 Codex Lemma 是一个开源的 Windows 桌面 Codex CLI 图形界面。对话、模型切换、文件编辑、Git 差异和终端放在同一个工作区中，可连接自己部署的本机模型端点。
 
 项目基于 [Codexia v0.58.0](https://github.com/milisp/codexia/tree/v0.58.0) 分叉，使用 React 和 Tauri。这是独立社区项目，与 OpenAI 无隶属关系。
+
+![Codex Lemma 工作区](docs/images/workspace-demo.jpg)
+
+*开发版界面，项目、对话和统计均为演示数据，不含私人会话。*
 
 ## 功能
 

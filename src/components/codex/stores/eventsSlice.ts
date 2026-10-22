@@ -2,6 +2,7 @@ import type { StateCreator } from 'zustand';
 import type { ServerNotification } from '@/bindings';
 import type { ThreadGoal, ThreadTokenUsage } from '@/bindings/v2';
 import { compactDeltaEvents } from './eventUtils';
+import { isRequestMetrics } from './requestMetrics';
 import { isTranscriptEvent } from './transcriptEvents';
 import type { CodexStore, EventsSlice, ReasoningLive, TurnTiming } from './types';
 
@@ -201,53 +202,18 @@ export const createEventsSlice: StateCreator<CodexStore, [], [], EventsSlice> = 
         };
       }
 
-      // App-server exposes turn duration, not provider decode timing. Count output
-      // over the whole observed turn so hidden reasoning and tool calls cannot
-      // inflate a rate timed only from the first visible text delta.
+      // Only backend stream measurements may populate decode throughput.
       let throughputMap = state.throughputMap;
-      const throughput = throughputMap[threadId];
       if (event.method === 'turn/started') {
         throughputMap = {
           ...throughputMap,
           [threadId]: {
             turnId: event.params.turn.id,
-            baselineOutputTokens: state.tokenUsageMap[threadId]?.total.outputTokens ?? null,
+            requests: 0,
+            ttftMs: null,
             outputTokens: 0,
             durationMs: null,
             tokensPerSec: null,
-          },
-        };
-      } else if (
-        event.method === 'thread/tokenUsage/updated' &&
-        throughput?.turnId === event.params.turnId
-      ) {
-        const { total, last } = event.params.tokenUsage;
-        const baseline = throughput.baselineOutputTokens ?? total.outputTokens - last.outputTokens;
-        const outputTokens = Math.max(0, total.outputTokens - baseline);
-        const durationMs = throughput.durationMs;
-        throughputMap = {
-          ...throughputMap,
-          [threadId]: {
-            ...throughput,
-            baselineOutputTokens: baseline,
-            outputTokens,
-            tokensPerSec:
-              durationMs !== null && durationMs >= 300 && outputTokens > 0
-                ? outputTokens / (durationMs / 1000)
-                : null,
-          },
-        };
-      } else if (event.method === 'turn/completed' && throughput?.turnId === event.params.turn.id) {
-        const durationMs = event.params.turn.durationMs;
-        throughputMap = {
-          ...throughputMap,
-          [threadId]: {
-            ...throughput,
-            durationMs,
-            tokensPerSec:
-              durationMs !== null && durationMs >= 300 && throughput.outputTokens > 0
-                ? throughput.outputTokens / (durationMs / 1000)
-                : null,
           },
         };
       }
@@ -271,6 +237,28 @@ export const createEventsSlice: StateCreator<CodexStore, [], [], EventsSlice> = 
     set((state: CodexStore) => ({
       approvedDenialIds: { ...state.approvedDenialIds, [reviewId]: true },
     }));
+  },
+
+  setRequestMetrics: (metrics: unknown) => {
+    if (!isRequestMetrics(metrics)) return;
+    set((state: CodexStore) => {
+      const previous = state.throughputMap[metrics.threadId];
+      if (previous && (previous.turnId !== metrics.turnId || previous.requests >= metrics.requests))
+        return {};
+      return {
+        throughputMap: {
+          ...state.throughputMap,
+          [metrics.threadId]: {
+            turnId: metrics.turnId,
+            requests: metrics.requests,
+            ttftMs: metrics.ttftMs,
+            outputTokens: metrics.outputTokens,
+            durationMs: metrics.decodeMs,
+            tokensPerSec: metrics.tokensPerSec,
+          },
+        },
+      };
+    });
   },
 
   setTokenUsage: (threadId: string, data: ThreadTokenUsage) => {

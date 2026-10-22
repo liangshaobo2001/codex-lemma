@@ -6,6 +6,7 @@ import type {
   PermissionsRequest,
   RequestUserInputRequest,
 } from '@/components/codex/stores';
+import { useCodexStore } from '@/components/codex/stores/useCodexStore';
 import { isDesktopTauri } from '@/hooks/runtime';
 import { openEventStream } from '@/lib/eventStream';
 
@@ -85,6 +86,10 @@ export function useSseEventBridge({
         }
         if (envelope.event === 'codex/permissions-request') {
           handlersRef.current.onPermissionsRequest(envelope.payload as PermissionsRequest);
+          return;
+        }
+        if (envelope.event === 'codex:request-metrics') {
+          useCodexStore.getState().setRequestMetrics(envelope.payload);
           return;
         }
         if (envelope.event === 'codex:notification') {

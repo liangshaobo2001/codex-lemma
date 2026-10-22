@@ -8,6 +8,10 @@ Codex keeps settings, authentication, session history, and logs in CODEX_HOME, d
 
 Provider keys entered in model settings are plaintext in Codex config.toml. MCP credentials and connector data may also be stored locally. Do not commit or share these files, logs, or full session transcripts without review.
 
+## Local timing metadata
+
+The development build starts an authenticated receiver on a random 127.0.0.1 port for the Codex child process's observation events. Prompt text logging is disabled. Only event kinds, timestamps, thread/turn association, and numeric timing/token summaries are used; the receiver does not save incoming batches or forward them externally. Its lifetime is tied to the child connection. This uses process-only CLI overrides and preserves configured custom log exporters. It is separate from the removed upstream hosted telemetry.
+
 ## Network requests
 
 Inference requests and relevant conversation/workspace content go to the provider selected for the thread. A local endpoint keeps that inference hop local, subject to what the endpoint itself does. MCP servers, web search, connectors, plugin/skill catalogs, authentication flows, and optional model/runtime downloads can contact their configured services. The bundled Codex may also request OpenAI/plugin metadata even when inference uses a custom provider. This release does not provide a verified offline mode or a network firewall.

@@ -1,5 +1,11 @@
 # Codex Lemma changelog
 
+## Unreleased
+
+- Measure approximate decode speed from backend stream event times per request, including reasoning and tool arguments, excluding tool execution; show mean TTFT on hover. Missing measurements remain unavailable.
+- Show session-wide token-weighted prompt-cache hits with one decimal, preserving unknown/invalid states and distinguishing partial hits from exact 100%.
+- Add the Lemma logo and a synthetic-data workspace screenshot to both READMEs.
+
 ## [0.1.0] - 2026-10-22
 
 Initial Windows x64 release, based on Codexia v0.58.0.

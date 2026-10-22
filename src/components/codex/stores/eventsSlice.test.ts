@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { ServerNotification } from '@/bindings';
 import { useCodexStore } from './useCodexStore';
 
@@ -117,82 +117,40 @@ describe('auto-review notifications', () => {
   });
 });
 
-describe('turn output throughput', () => {
-  const start = (turnId = 'speed-turn') => notify({
-    method: 'turn/started', params: { threadId: THREAD, turn: { id: turnId, startedAt: 1000 } },
-  });
-  const usage = (total: number, last: number, turnId = 'speed-turn') => notify({
-    method: 'thread/tokenUsage/updated', params: { threadId: THREAD, turnId, tokenUsage: {
-      total: { outputTokens: total }, last: { outputTokens: last },
-    } },
-  });
-  const finish = (durationMs: number | null = 20_000, turnId = 'speed-turn') => notify({
-    method: 'turn/completed', params: { threadId: THREAD, turn: {
-      id: turnId, status: 'completed', startedAt: 1000, durationMs,
-    } },
+describe('backend request throughput', () => {
+  const start = (turnId = 'turn') => useCodexStore.getState().addEvent(THREAD, {
+    method: 'turn/started', params: { threadId: THREAD, turn: { id: turnId } },
+  } as never);
+  const report = (overrides = {}) => useCodexStore.getState().setRequestMetrics({
+    threadId: THREAD, turnId: 'turn', requests: 1, outputTokens: 1600,
+    decodeMs: 20000, ttftMs: 1500, tokensPerSec: 80, ...overrides,
   });
   const speed = () => useCodexStore.getState().throughputMap[THREAD]?.tokensPerSec;
-
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(1_000_000);
-    useCodexStore.setState({ throughputMap: {}, tokenUsageMap: {}, turnTimingMap: {}, events: {} });
+  beforeEach(() => { useCodexStore.setState({ throughputMap: {}, tokenUsageMap: {}, events: {} }); });
+  it('uses backend timing including hidden reasoning, independent of visible text and receipt delay', () => {
+    start(); report(); expect(speed()).toBe(80);
   });
-  afterEach(() => vi.useRealTimers());
-
-  it('includes time before visible text instead of inflating 80 to 320 tok/s', () => {
+  it('does not fabricate decode speed from turn duration or token notifications', () => {
     start();
-    vi.advanceTimersByTime(15_000);
-    notify({ method: 'item/agentMessage/delta', params: {
-      threadId: THREAD, turnId: 'speed-turn', itemId: 'answer', delta: 'visible answer',
-    } });
-    vi.advanceTimersByTime(5_000);
-    usage(1600, 1600);
-    finish();
-    expect(speed()).toBe(80);
-  });
-
-  it('uses cumulative deltas across tool requests without counting duplicate usage twice', () => {
-    useCodexStore.setState({ tokenUsageMap: { [THREAD]: { total: { outputTokens: 10_000 } } as never } });
-    start();
-    usage(10_400, 400);
-    usage(10_400, 400);
-    usage(11_600, 1200);
-    finish();
-    expect(speed()).toBe(80);
-  });
-
-  it('can measure a tool-only turn with no text deltas', () => {
-    start();
-    usage(1600, 1600);
-    finish();
-    expect(speed()).toBe(80);
-  });
-
-  it('uses the server duration when completion events arrive late', () => {
-    start();
-    vi.advanceTimersByTime(30_000);
-    usage(1600, 1600);
-    finish();
-    expect(speed()).toBe(80);
-  });
-
-  it('accepts late usage for the completed turn and ignores other turns', () => {
-    start();
-    finish();
-    usage(1600, 1600, 'other-turn');
+    useCodexStore.getState().addEvent(THREAD, { method: 'thread/tokenUsage/updated', params: {
+      threadId: THREAD, turnId: 'turn', tokenUsage: { total: { outputTokens: 1600 }, last: { outputTokens: 1600 } },
+    } } as never);
+    useCodexStore.getState().addEvent(THREAD, { method: 'turn/completed', params: {
+      threadId: THREAD, turn: { id: 'turn', durationMs: 5000 },
+    } } as never);
     expect(speed()).toBeNull();
-    usage(1600, 1600);
-    expect(speed()).toBe(80);
   });
-
-  it('shows unavailable on an unobserved turn or invalid server duration', () => {
-    usage(1600, 1600);
-    finish();
-    expect(speed() ?? null).toBeNull();
-    start('invalid');
-    usage(1600, 1600, 'invalid');
-    finish(0, 'invalid');
-    expect(speed()).toBeNull();
+  it('accepts weighted summaries including tool-only requests without adding duplicate events', () => {
+    start(); report(); report(); report({ requests: 2, tokensPerSec: 70 });
+    expect(speed()).toBe(70);
+    report(); expect(speed()).toBe(70);
+  });
+  it('ignores delayed measurements belonging to a previous turn', () => {
+    start(); report(); start('new'); report(); expect(speed()).toBeNull();
+  });
+  it('rejects invalid metadata and accepts a replay when no current measurement exists', () => {
+    report({ tokensPerSec: NaN }); expect(speed()).toBeUndefined();
+    report({ decodeMs: 0 }); expect(speed()).toBeUndefined();
+    report(); expect(speed()).toBe(80);
   });
 });

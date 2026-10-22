@@ -19,6 +19,7 @@ pub struct CodexAppServer {
     stdin: Mutex<ChildStdin>,
     pending: Mutex<HashMap<u64, oneshot::Sender<Result<Value, String>>>>,
     next_id: AtomicU64,
+    _request_metrics: Option<crate::request_metrics::Collector>,
 }
 
 impl CodexAppServer {
@@ -153,6 +154,9 @@ pub async fn connect_codex(event_sink: Arc<dyn EventSink>) -> Result<Arc<CodexAp
         command.env(key, value);
     }
 
+    let collector = crate::request_metrics::Collector::start(&mut command, Arc::clone(&event_sink)).await;
+    let request_metrics = collector.as_ref().map(|c| Arc::clone(&c.metrics));
+
     command.stdin(std::process::Stdio::piped());
     command.stdout(std::process::Stdio::piped());
     command.stderr(std::process::Stdio::piped());
@@ -168,6 +172,7 @@ pub async fn connect_codex(event_sink: Arc<dyn EventSink>) -> Result<Arc<CodexAp
         stdin: Mutex::new(stdin),
         pending: Mutex::new(HashMap::new()),
         next_id: AtomicU64::new(1),
+        _request_metrics: collector,
     });
     log::info!("Connected to codex app-server");
 
@@ -211,6 +216,9 @@ pub async fn connect_codex(event_sink: Arc<dyn EventSink>) -> Result<Arc<CodexAp
                     handle_server_request(&event_sink_clone, id, &method, params).await;
                 }
                 Some(ServerMessage::Notification { raw, .. }) => {
+                    if let Some(metrics) = &request_metrics && let Ok(mut metrics) = metrics.lock() {
+                        metrics.notification(&raw);
+                    }
                     sync_automation_run_status(&raw);
                     event_sink_clone.emit("codex:notification", raw);
                 }
