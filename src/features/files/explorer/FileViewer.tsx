@@ -241,11 +241,7 @@ export function FileViewer({ filePath }: FileViewerProps) {
             </div>
           </div>
         ) : error ? (
-          <div
-            className={`p-4 text-center ${resolvedTheme === 'dark' ? 'text-destructive' : 'text-red-500'}`}
-          >
-            {error}
-          </div>
+          <div className="p-4 text-center text-destructive">{error}</div>
         ) : (
           <div className="h-full flex flex-col">
             <CodeEditor

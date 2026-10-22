@@ -255,7 +255,7 @@ export function CodexThreadManager({ onClose }: CodexThreadManagerProps) {
                       setPendingDeleteItems([thread]);
                     }}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3.5 w-3.5 text-delete-icon!" />
                   </Button>
                 </div>
               </div>

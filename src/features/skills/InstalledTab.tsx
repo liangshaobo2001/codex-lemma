@@ -134,7 +134,7 @@ function SkillCard({
                 onClick={() => onDelete(skill)}
                 disabled={Boolean(togglingKey) || deleting}
               >
-                <Trash2 className="h-3 w-3" />
+                <Trash2 className="h-3 w-3 text-delete-icon!" />
               </Button>
             </span>
           </div>
@@ -488,7 +488,7 @@ export function InstalledTab({
         <AlertDialogContent className="max-w-sm">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-4 w-4 text-delete-icon!" />
               {t('skills.deleteTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -508,7 +508,7 @@ export function InstalledTab({
                 void handleDelete();
               }}
               disabled={deleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
             >
               {deleting ? (
                 <>

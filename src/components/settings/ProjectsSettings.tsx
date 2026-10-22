@@ -104,7 +104,7 @@ export function ProjectsSettings() {
                     onClick={() => setPendingDelete(project)}
                     title={t('projects.delete')}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3.5 w-3.5 text-delete-icon!" />
                   </Button>
                 </div>
               ))}

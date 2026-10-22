@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.1.4] - 2026-10-23
+
+- Use neutral controls, interruption/error states, and notifications in both themes, with red limited to small trash icons; preserve diff and source-content colors.
+
 - Hide the native long-thread compaction advisory in live and restored chats while preserving other warnings.
 
 - Collapse long user messages to a 15-line preview with expand/collapse controls, preserving full copy/edit content.

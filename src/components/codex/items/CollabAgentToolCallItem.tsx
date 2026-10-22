@@ -55,22 +55,22 @@ function agentStatusDisplay(
     case 'running':
       return {
         label: t('collab.status.running'),
-        className: 'bg-blue-500/15 text-blue-700 dark:text-blue-400',
+        className: 'bg-muted text-muted-foreground',
       };
     case 'completed':
       return {
         label: t('collab.status.done'),
-        className: 'bg-green-500/15 text-green-700 dark:text-green-400',
+        className: 'bg-muted text-muted-foreground',
       };
     case 'errored':
       return {
         label: t('collab.status.errored'),
-        className: 'bg-red-500/15 text-red-700 dark:text-red-400',
+        className: 'bg-muted text-muted-foreground',
       };
     case 'interrupted':
       return {
         label: t('collab.status.stopped'),
-        className: 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400',
+        className: 'bg-muted text-muted-foreground',
       };
     case 'shutdown':
       return { label: t('collab.status.shutdown'), className: 'bg-muted text-muted-foreground' };
@@ -79,7 +79,7 @@ function agentStatusDisplay(
     case 'notFound':
       return {
         label: t('collab.status.notFound'),
-        className: 'bg-red-500/15 text-red-700 dark:text-red-400',
+        className: 'bg-muted text-muted-foreground',
       };
     default:
       return { label: status, className: 'bg-muted text-muted-foreground' };

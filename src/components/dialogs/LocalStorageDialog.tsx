@@ -166,7 +166,7 @@ export function LocalStorageDialog({ defaultOpen = false }: { defaultOpen?: bool
                       onClick={() => handleDelete(selectedEntry.key)}
                       title="Delete entry"
                     >
-                      <Trash2 className="size-3" />
+                      <Trash2 className="size-3 text-delete-icon!" />
                     </Button>
                   </div>
                 </div>

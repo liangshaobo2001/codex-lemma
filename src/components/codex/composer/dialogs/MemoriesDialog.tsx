@@ -102,7 +102,7 @@ export function MemoriesDialog({ open, onClose }: MemoriesDialogProps) {
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm" disabled={resetting}>
-                <Trash2 className="size-4" />
+                <Trash2 className="size-4 text-delete-icon!" />
                 {t('memories.reset')}
               </Button>
             </AlertDialogTrigger>

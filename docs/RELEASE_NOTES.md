@@ -1,14 +1,15 @@
-Initial Windows x64 release of Codex Lemma, a focused open-source Codex GUI based on Codexia v0.58.0.
+Codex Lemma v0.1.4 collects four updates since v0.1.0.
 
-- Removed the fork-specific Auto mode. Fresh installs default to Ask for approval; legacy Auto mode migrates to it while preserving other supported choices.
-- Custom Responses-compatible model providers and composer model selection.
-- Conversations, approvals, tools, files, Git diffs, terminal, MCP, skills, and scheduled work in one desktop workspace.
-- English/Chinese UI, compact window chrome, neutral gray stop button, and corrected command ordering.
-- Approximate turn-average output throughput replaces the misleading visible-text decode estimate.
-- Per-user installer includes Codex CLI 0.163.0 and license notices; no separate Node/Codex install is needed.
+- Neutral black/gray controls, interrupted/error states, notifications, recording state, and window close hover. Small trash icons remain red; Git diffs, syntax highlighting, and terminal content retain their colors.
+- Lighter workspace typography and expandable 15-line previews for long user messages. Copy/edit keep the full message.
+- Approximate per-request decode throughput including reported reasoning output, excluding tool execution, with mean TTFT on hover. Unsupported or incomplete timing stays unavailable. The last valid same-session reading remains visible while a new one is pending.
+- Session-wide token-weighted prompt-cache hits with one decimal.
+- Completion sound defaults off, including upgrades, with an opt-in Settings → Codex → Task switch.
+- Hide the native long-thread advisory while preserving other warnings and compaction behavior.
+- README logo and a clean synthetic-data screenshot.
 
-Download the x64 setup executable and optionally verify it against SHA256SUMS.txt. The installer is unsigned. WebView2 is required. Bring your own model endpoint; model weights are not included.
+Download the Windows x64 setup executable and verify it against SHA256SUMS.txt. The installer bundles Codex CLI 0.163.0 and license notices; it is unsigned and requires WebView2. Install over an existing Lemma installation to update it.
 
-Your endpoint must support Responses streaming and Codex-compatible tool calls. The default CLI home is the standard ~/.codex and may share configuration/login with other Codex clients; set CODEX_HOME before launch if a separate CLI home is desired. Provider keys entered in the GUI are stored in plaintext. Historical-turn loading is limited by app-server compatibility. No automatic updater is included.
+Bring your own Responses-compatible model endpoint with Codex tool-call support. Model weights are not included. The default CLI home is ~/.codex; set CODEX_HOME before launch to select a separate home. Provider keys entered in the GUI are stored in plaintext. Historical-turn loading depends on app-server compatibility. No automatic updater is included.
 
-The earlier packaging/runtime rehearsal covered installation, bundled CLI launch without a system Codex, a synthetic streamed response with a harmless command, and uninstallation. Frontend and Rust validation cover the final source. See the README for setup and current scope.
+Local validation covers frontend tests/typechecking, registry, Rust workspace clippy/tests, and Windows packaging. This update retains the runtime/installer layout exercised for v0.1.0; no model service, user login, or conversation configuration is migrated by these UI changes.

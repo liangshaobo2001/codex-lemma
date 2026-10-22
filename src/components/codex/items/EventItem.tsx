@@ -48,9 +48,7 @@ export const EventItem = ({ event, context }: EventItemProps) => {
   );
   switch (event.method) {
     case 'error':
-      return (
-        <p className="text-red-600 dark:text-red-400 font-medium">{event.params.error.message}</p>
-      );
+      return <p className="text-foreground font-normal">{event.params.error.message}</p>;
     case 'warning':
       if (isHiddenWarning(event)) return null;
       return (
@@ -106,7 +104,9 @@ export const EventItem = ({ event, context }: EventItemProps) => {
       if (event.params.turn.status === 'interrupted') {
         return (
           <div>
-            <Badge variant="destructive">{event.params.turn.status}</Badge>
+            <Badge variant="secondary" className="font-normal text-muted-foreground">
+              {event.params.turn.status}
+            </Badge>
           </div>
         );
       }

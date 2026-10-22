@@ -46,7 +46,7 @@ export function DirtyBranchAlertDialog({
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onCancel}>{t('branch.cancel')}</AlertDialogCancel>
           <AlertDialogAction
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
             onClick={() => {
               if (dirtyBranch) {
                 onConfirm(dirtyBranch);

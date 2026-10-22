@@ -105,7 +105,7 @@ export function PluginDetailView({
           {isInstalled ? (
             <>
               <Button size="sm" variant="destructive" onClick={onUninstall}>
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-4 w-4 text-delete-icon!" />
                 {t('plugins.uninstall')}
               </Button>
               <Button size="sm" variant="default" onClick={onUse}>

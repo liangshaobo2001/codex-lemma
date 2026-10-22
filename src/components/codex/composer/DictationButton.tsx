@@ -273,7 +273,7 @@ export function DictationButton({ onTranscript }: DictationButtonProps) {
                 ? t('dictation.stop')
                 : t('dictation.start')
           }
-          className={cn('h-8 w-8', isListening && 'text-red-600 hover:bg-red-50')}
+          className={cn('h-8 w-8', isListening && 'bg-muted text-foreground hover:bg-accent')}
         >
           {isPreparingModel ? (
             <DownloadProgressRing percent={downloadPercent} className="text-foreground" />

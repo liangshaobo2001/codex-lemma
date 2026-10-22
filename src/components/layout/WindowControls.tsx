@@ -54,12 +54,7 @@ export function WindowControls() {
       >
         {maximized ? <Copy className="size-3.5 -scale-x-100" /> : <Square className="size-3.5" />}
       </button>
-      <button
-        type="button"
-        className={`${btn} hover:bg-red-600 hover:text-white`}
-        title={t('window.close')}
-        onClick={() => win.close()}
-      >
+      <button type="button" className={btn} title={t('window.close')} onClick={() => win.close()}>
         <X className="size-4" />
       </button>
     </div>

@@ -451,7 +451,7 @@ export function ManageDialog({
               onClick={() => setConfirmDelete(true)}
               className="mr-auto text-destructive hover:text-destructive"
             >
-              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+              <Trash2 className="mr-1.5 h-3.5 w-3.5 text-delete-icon!" />
               {t('automations.manage.delete')}
             </Button>
             <Button

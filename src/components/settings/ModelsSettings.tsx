@@ -416,7 +416,7 @@ export function ModelsSettings() {
                     title={t('modelsPage.removeProvider')}
                     onClick={() => void removeProvider(provider)}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3.5 w-3.5 text-delete-icon!" />
                   </Button>
                 </div>
                 {models.length === 0 ? (

@@ -80,7 +80,7 @@ export function PluginCard({
                 {isUninstalling ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4 text-delete-icon!" />
                 )}
               </Button>
             ) : plugin.installed ? (

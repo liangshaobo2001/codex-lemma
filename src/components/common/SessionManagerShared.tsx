@@ -57,7 +57,7 @@ export function Toolbar({
           className="h-8 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
           onClick={onDeleteSelected}
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          <Trash2 className="h-3.5 w-3.5 text-delete-icon!" />
           {t('sessionManager.deleteCount', { count: selectedCount })}
         </Button>
       )}
@@ -91,7 +91,7 @@ export function DeleteConfirmDialog({
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onCancel}>{t('common.cancel')}</AlertDialogCancel>
           <AlertDialogAction
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
             onClick={onConfirm}
           >
             {t('common.delete')}

@@ -1,9 +1,12 @@
 import { Toaster as SonnerToaster } from "sonner"
+import { useThemeContext } from "@/contexts/ThemeContext"
 
 export function Toaster() {
+  const { resolvedTheme } = useThemeContext()
   return (
     <SonnerToaster
-      richColors
+      theme={resolvedTheme}
+      richColors={false}
       closeButton
       position="top-right"
       // Offset from the edge so the close button (which overhangs the toast

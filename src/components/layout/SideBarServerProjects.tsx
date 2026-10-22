@@ -132,7 +132,7 @@ export function SideBarServerProjects({ onNewChat }: SideBarServerProjectsProps)
                       variant="destructive"
                       onSelect={() => setDialog({ kind: 'delete', project })}
                     >
-                      <Trash2 /> {t('projects.delete')}
+                      <Trash2 className="text-delete-icon!" /> {t('projects.delete')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

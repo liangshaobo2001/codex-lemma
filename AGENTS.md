@@ -14,6 +14,7 @@
 - Don't break Fast Refresh: a `.tsx` file rendering UI must only export PascalCase components (no lowercase JSX-returning helpers), otherwise HMR falls back to a full page reload and drops in-flight events
 
 ## Product UI
+- Keep application controls, error states, and status badges neutral black/gray in both themes. Small trash icons may be red. Preserve Git diff colors, syntax highlighting, terminal ANSI colors, and user-supplied content. Keep semantic error/destructive state and accessible labels even when visual styling is neutral.
 - Build a product interface, not an inline documentation page. Make the user's task and primary action obvious before adding explanatory copy.
 - Keep default views concise: clear labels, controls, and compact status indicators. Add helper text only when it changes the user's immediate decision or prevents a likely mistake.
 - Use progressive disclosure for technical details: help popovers, expandable advanced settings, or linked documentation. Keep configuration paths, protocol terminology, implementation details, and long compatibility or security explanations out of the default view unless needed for the current task.

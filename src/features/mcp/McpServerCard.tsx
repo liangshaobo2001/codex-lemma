@@ -152,7 +152,7 @@ export function McpServerCard({
                 variant="outline"
                 className={`text-[10px] font-normal px-1.5 h-4 uppercase ${
                   authStatus === 'notLoggedIn'
-                    ? 'bg-red-500/10 text-red-500'
+                    ? 'bg-muted text-muted-foreground'
                     : authStatus === 'unsupported'
                       ? 'text-muted-foreground'
                       : 'bg-green-500/10 text-green-500'
@@ -188,7 +188,7 @@ export function McpServerCard({
               <Edit className="h-4 w-4" />
             </Button>
             <Button size="sm" variant="ghost" onClick={handleDeleteServer}>
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-4 w-4 text-delete-icon!" />
             </Button>
           </div>
         </CardTitle>
