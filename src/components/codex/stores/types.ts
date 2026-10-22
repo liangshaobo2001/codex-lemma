@@ -8,6 +8,7 @@ import type {
   ThreadStatus,
   ThreadTokenUsage,
 } from '@/bindings/v2';
+import type { RequestMetrics } from './requestMetrics';
 
 /**
  * Per-thread turn timing, fed by turn/started + turn/completed + error.
@@ -67,7 +68,7 @@ export interface EventsSlice {
    * it started, and how long it took once item/completed arrives. Drives the streaming thinking window.
    */
   reasoningLiveMap: Record<string, ReasoningLive>;
-  /** Average output throughput of the last observed turn; includes waiting and tool time. */
+  /** Stream measurements for the active turn; never derived from visible text receipt. */
   throughputMap: Record<
     string,
     {
@@ -79,6 +80,8 @@ export interface EventsSlice {
       tokensPerSec: number | null;
     }
   >;
+  /** Last valid reading per thread, retained while a new turn has no reading yet. */
+  lastThroughputMap: Record<string, RequestMetrics>;
   /** Per-thread token usage from thread/tokenUsage/updated */
   tokenUsageMap: Record<string, ThreadTokenUsage>;
   /** Per-thread goal from thread/goal/updated */

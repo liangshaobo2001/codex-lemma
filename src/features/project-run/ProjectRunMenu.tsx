@@ -46,7 +46,7 @@ export function ProjectRunMenu() {
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 gap-1 px-2"
+            className="h-7 gap-1 px-2 font-normal"
             title={t('projectRun.runProjectCommand')}
           >
             <Play className="size-3.5" />

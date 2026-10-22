@@ -7,6 +7,7 @@ import type { ThreadItem } from '@/bindings/v2';
 import { useCodexStore } from '@/components/codex/stores';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { deriveRenderItems } from '../thread/deriveRenderItems';
+import { isTranscriptEvent } from '../stores/transcriptEvents';
 import { EventItem } from './EventItem';
 import { ThreadStepChain } from './ThreadStepChain';
 
@@ -337,5 +338,38 @@ describe('EventItem auto-review decisions', () => {
 
     expect(screen.getByText('Auto-review timed out')).toBeTruthy();
     expect(screen.queryByRole('button')).toBeNull();
+  });
+});
+
+describe('CLI advisory visibility', () => {
+  const advisory = "Heads up: Long threads and multiple compactions can cause the model to be less accurate. Start a new thread when possible to keep threads small and targeted.";
+  const warning = (message: string): ServerNotification => ({method:'warning', params:{threadId:'t1', message}});
+
+  it('hides the long-thread advisory for both live and restored events', () => {
+    const event = warning('  ' + advisory.replace('multiple compactions', 'multiple\ncompactions') + '  ');
+    expect(isTranscriptEvent(event)).toBe(false);
+    expect(deriveRenderItems([event])).toEqual([]);
+    const {container} = render(<EventItem event={event}/>);
+    expect(container.textContent).toBe('');
+  });
+
+  it('does not split a tool chain around a hidden advisory', () => {
+    const events = [completed(command({id:'a'})), warning(advisory), completed(command({id:'b'}))];
+    const items = deriveRenderItems(events);
+    expect(items).toHaveLength(1);
+    expect(items[0].kind === 'chain' && items[0].steps.map(step => step.item.id)).toEqual(['a','b']);
+    expect(events).toHaveLength(3);
+  });
+
+  it.each([
+    'Model metadata not found. Defaulting to fallback metadata.',
+    'The provider does not support this feature.',
+    advisory + ' Additional details: retry failed.',
+  ])('preserves other warnings: %s', message => {
+    const event = warning(message);
+    expect(isTranscriptEvent(event)).toBe(true);
+    expect(deriveRenderItems([event])).toHaveLength(1);
+    render(<EventItem event={event}/>);
+    expect(screen.getByText(message)).toBeTruthy();
   });
 });

@@ -18,6 +18,7 @@ export const createEventsSlice: StateCreator<CodexStore, [], [], EventsSlice> = 
   tokenUsageMap: {},
   reasoningLiveMap: {},
   throughputMap: {},
+  lastThroughputMap: {},
   goalMap: {},
   goalEnabled: false,
 
@@ -246,6 +247,7 @@ export const createEventsSlice: StateCreator<CodexStore, [], [], EventsSlice> = 
       if (previous && (previous.turnId !== metrics.turnId || previous.requests >= metrics.requests))
         return {};
       return {
+        lastThroughputMap: { ...state.lastThroughputMap, [metrics.threadId]: metrics },
         throughputMap: {
           ...state.throughputMap,
           [metrics.threadId]: {

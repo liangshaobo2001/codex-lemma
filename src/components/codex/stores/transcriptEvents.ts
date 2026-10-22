@@ -1,4 +1,5 @@
 import type { ServerNotification } from '@/bindings';
+import { isHiddenWarning } from './hiddenWarnings';
 
 // Notifications kept in a thread's transcript (`events[threadId]`). Everything
 // else still updates derived state in `addEvent`, but never reaches the
@@ -29,5 +30,5 @@ export const isTranscriptEvent = (event: ServerNotification): boolean => {
     const { status } = event.params.review;
     return status === 'denied' || status === 'timedOut';
   }
-  return TRANSCRIPT_METHODS.has(event.method);
+  return !isHiddenWarning(event) && TRANSCRIPT_METHODS.has(event.method);
 };

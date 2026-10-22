@@ -292,6 +292,8 @@ export const chat = {
       costByModel: 'Cost by model',
       speedTitle:
         'Approximate decode over {{requests}} measured requests in the last turn (reasoning included; tool execution excluded). Mean TTFT {{ttft}} s. Measured from stream event times, not engine telemetry.',
+      speedPreviousTitle:
+        'Last available reading from an earlier turn: approximate decode over {{requests}} measured requests; mean TTFT {{ttft}} s. Waiting for a reading from the current turn.',
       cacheTitle: 'Session prompt cache hit: {{cached}} of {{input}} cumulative input tokens',
       cacheUnavailable: 'Session prompt-cache counts are unavailable or invalid',
       cacheUnknown: 'cache —',
@@ -673,6 +675,8 @@ export const chat = {
       costByModel: '按模型统计的费用',
       speedTitle:
         '上一轮 {{requests}} 次已测请求的近似生成速度（含推理，不含工具执行）；平均首 token 延迟 {{ttft}} 秒。根据流事件计时，非引擎内部指标。',
+      speedPreviousTitle:
+        '上一轮有效读数：{{requests}} 次已测请求的近似生成速度，平均首 token 延迟 {{ttft}} 秒；等待本轮读数。',
       cacheTitle: '本会话累计提示缓存命中：{{input}} 个输入 token 中命中 {{cached}} 个',
       cacheUnavailable: '尚无有效的会话缓存计数',
       cacheUnknown: '缓存命中 —',

@@ -20,7 +20,7 @@ import { SideBarAddProjectButton } from './SideBarAddProjectButton';
 import { SideBarCodexTab } from './SideBarTab';
 
 // Shared class for nav buttons (Automations / Marketplace)
-const navBtnBase = 'justify-start gap-2 rounded-md border px-2.5';
+const navBtnBase = 'justify-start gap-2 rounded-md border px-2.5 font-normal';
 const navBtnActive = 'border-border bg-accent/70 text-accent-foreground';
 const navBtnInactive = 'border-transparent hover:border-border/60';
 const navBtnCls = (active: boolean) => `${navBtnBase} ${active ? navBtnActive : navBtnInactive}`;

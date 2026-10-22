@@ -52,7 +52,7 @@ export function NewAgentButton({ showLabel = false }: Props) {
       onClick={() => void handleCreateNew()}
       size={showLabel ? 'default' : 'icon'}
       variant="ghost"
-      className={`group/newchat ${showLabel ? 'justify-start' : ''} relative flex items-center gap-2`}
+      className={`group/newchat font-normal ${showLabel ? 'justify-start' : ''} relative flex items-center gap-2`}
       title={`${t('newChat')} (${shortcut})`}
     >
       <SquarePen size={16} />

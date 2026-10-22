@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import type { ServerNotification } from '@/bindings';
 import type { FileUpdateChange } from '@/bindings/v2';
 import { Badge } from '@/components/ui/badge';
+import { isHiddenWarning } from '../stores/hiddenWarnings';
 import { AgentMessageItem } from './AgentMessageItem';
 import { AutoReviewDecisionItem } from './AutoReviewDecisionItem';
 import {
@@ -51,6 +52,7 @@ export const EventItem = ({ event, context }: EventItemProps) => {
         <p className="text-red-600 dark:text-red-400 font-medium">{event.params.error.message}</p>
       );
     case 'warning':
+      if (isHiddenWarning(event)) return null;
       return (
         <p className="text-yellow-600 dark:text-yellow-400 font-medium">{event.params.message}</p>
       );

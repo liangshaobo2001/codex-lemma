@@ -165,7 +165,7 @@ export function OpenAppMenu({ path, openTargets, selectedOpenAppId, onSelectOpen
           !selectedTarget ||
           (selectedTarget.target.kind !== 'finder' && !selectedTarget.installed)
         }
-        className="flex items-center gap-2"
+        className="flex items-center gap-2 font-normal"
       >
         {selectedTarget && <TargetIcon id={selectedTarget.id} icon={selectedTarget.icon} />}
         <span>{isChecking ? tc('openApp.checking') : tc('openApp.openIn')}</span>

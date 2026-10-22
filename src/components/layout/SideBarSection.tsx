@@ -34,7 +34,7 @@ export function SideBarSection({
         <Button
           variant="ghost"
           size="sm"
-          className="min-w-0 shrink justify-start gap-2 border border-transparent px-2.5"
+          className="min-w-0 shrink justify-start gap-2 border border-transparent px-2.5 font-normal text-muted-foreground"
           onClick={onTitleClick ?? (() => onOpenChange(!open))}
         >
           <span

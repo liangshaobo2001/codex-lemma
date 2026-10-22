@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import type { UserInput } from '@/bindings/v2';
 import { useEventPreferencesStore } from '@/components/codex/stores';
 import { AddToTodo, CopyButton } from '@/components/common';
-import { Markdown } from '@/components/Markdown';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { fileSrc } from '@/hooks/runtime';
@@ -13,6 +12,7 @@ import { codexService } from '@/services/codexService';
 import { useInputStore } from '@/stores';
 import { getErrorMessage } from '@/utils/errorUtils';
 import { EditRollbackConfirmDialog } from './EditRollbackConfirmDialog';
+import { UserMessageText } from './UserMessageText';
 
 type UserMessageItemProps = {
   content: Array<UserInput>;
@@ -68,7 +68,7 @@ export const UserMessageItem = ({
               ))}
             </div>
           )}
-          {text.length > 0 && <Markdown className="min-w-0 max-w-full" value={text} />}
+          {text.length > 0 && <UserMessageText key={text} text={text} />}
         </div>
         <div
           className={`flex min-w-0 items-center gap-1 px-1 ${

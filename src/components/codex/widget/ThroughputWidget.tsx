@@ -12,13 +12,18 @@ export function ThroughputWidget() {
   const metrics = useCodexStore((state) =>
     state.currentThreadId ? (state.throughputMap[state.currentThreadId] ?? null) : null
   );
+  const previous = useCodexStore((state) =>
+    state.currentThreadId ? (state.lastThroughputMap[state.currentThreadId] ?? null) : null
+  );
+  const showingPrevious = metrics?.tokensPerSec == null && previous !== null;
+  const reading = showingPrevious ? previous : metrics;
   const usage = useCodexStore((state) =>
     state.currentThreadId ? (state.tokenUsageMap[state.currentThreadId]?.total ?? null) : null
   );
 
   const tps =
-    currentThreadId && metrics?.tokensPerSec != null ? Math.round(metrics.tokensPerSec) : null;
-  const ttft = metrics?.ttftMs != null ? (metrics.ttftMs / 1000).toFixed(1) : '—';
+    currentThreadId && reading?.tokensPerSec != null ? Math.round(reading.tokensPerSec) : null;
+  const ttft = reading?.ttftMs != null ? (reading.ttftMs / 1000).toFixed(1) : '—';
   const hit = formatCacheHit(usage?.cachedInputTokens, usage?.inputTokens);
 
   if (!showSpeed && !showCache) return null;
@@ -28,10 +33,13 @@ export function ThroughputWidget() {
       {showSpeed && (
         <span
           className="flex items-center gap-1"
-          title={t('widgets.speedTitle', { ttft, requests: metrics?.requests ?? 0 })}
+          title={t(showingPrevious ? 'widgets.speedPreviousTitle' : 'widgets.speedTitle', {
+            ttft,
+            requests: reading?.requests ?? 0,
+          })}
         >
           <Gauge className="h-3.5 w-3.5" />
-          {tps === null ? '—' : `≈${tps}`} tok/s
+          {tps === null ? '—' : tps} tok/s
         </span>
       )}
       {showCache && (

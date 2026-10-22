@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Hide the native long-thread compaction advisory in live and restored chats while preserving other warnings.
+
+- Collapse long user messages to a 15-line preview with expand/collapse controls, preserving full copy/edit content.
+- Keep the previous turn’s throughput visible while awaiting a new reading and remove the approximate symbol from the compact display; retain measurement details on hover.
+- Default completion sound off, including upgrades, with an opt-in switch under Settings → Codex → Task.
+
+- Use regular-weight text for workspace navigation, project/chat names, and composer/toolbar controls; retain the settings typography and message emphasis.
+
 - Measure approximate decode speed from backend stream event times per request, including reasoning and tool arguments, excluding tool execution; show mean TTFT on hover. Missing measurements remain unavailable.
 - Show session-wide token-weighted prompt-cache hits with one decimal, preserving unknown/invalid states and distinguishing partial hits from exact 100%.
 - Add the Lemma logo and a synthetic-data workspace screenshot to both READMEs.

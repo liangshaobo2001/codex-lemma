@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { type TaskCompleteBeepMode, type TaskDetail, useSettingsStore } from '@/stores/settings';
+import { type TaskDetail, useSettingsStore } from '@/stores/settings';
 
 export function TaskSettings() {
   const { t } = useTranslation('app');
@@ -22,8 +22,6 @@ export function TaskSettings() {
     setTaskDetail,
   } = useSettingsStore();
   const handleTaskDetailChange = (value: string) => setTaskDetail(value as TaskDetail);
-  const handleTaskCompleteBeepChange = (value: string) =>
-    setEnableTaskCompleteBeep(value as TaskCompleteBeepMode);
 
   return (
     <div className="w-full px-2 sm:px-4 space-y-6">
@@ -51,16 +49,12 @@ export function TaskSettings() {
               <p className="text-xs sm:text-sm font-medium">{t('task.beep')}</p>
               <p className="text-xs text-muted-foreground">{t('task.beepDescription')}</p>
             </div>
-            <Select value={enableTaskCompleteBeep} onValueChange={handleTaskCompleteBeepChange}>
-              <SelectTrigger className="w-[220px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="never">{t('task.never')}</SelectItem>
-                <SelectItem value="unfocused">{t('task.unfocused')}</SelectItem>
-                <SelectItem value="always">{t('task.always')}</SelectItem>
-              </SelectContent>
-            </Select>
+            <Switch
+              checked={enableTaskCompleteBeep !== 'never'}
+              onCheckedChange={(enabled) => setEnableTaskCompleteBeep(enabled ? 'always' : 'never')}
+              aria-label={t('task.beep')}
+              className="flex-shrink-0"
+            />
           </div>
           <div className="flex items-start justify-between gap-2 sm:gap-4 rounded-md border p-3 sm:p-4">
             <div className="flex-1 min-w-0">

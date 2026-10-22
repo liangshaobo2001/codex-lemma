@@ -93,7 +93,7 @@ export function SideBarServerProjects({ onNewChat }: SideBarServerProjectsProps)
                 ) : (
                   <FolderClosed className="h-3.5 w-3.5 shrink-0" />
                 )}
-                <span className="truncate font-medium">{project.name}</span>
+                <span className="truncate font-normal">{project.name}</span>
                 {isOpen(project.id) ? (
                   <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-0 group-hover:opacity-100" />
                 ) : (
@@ -177,7 +177,7 @@ export function SideBarServerProjects({ onNewChat }: SideBarServerProjectsProps)
         <div className="group flex items-center gap-1 px-1 py-0.5 text-xs transition-colors hover:bg-foreground/10">
           <CollapsibleTrigger className="flex min-w-0 flex-1 items-center gap-2 text-left">
             <Inbox className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate font-medium">{ts('ungrouped')}</span>
+            <span className="truncate font-normal">{ts('ungrouped')}</span>
             {isOpen(UNGROUPED_ID) ? (
               <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-0 group-hover:opacity-100" />
             ) : (

@@ -1,6 +1,7 @@
 import type { ServerNotification } from '@/bindings';
 import { isStepItem, type StepItem } from '../items/stepItems';
 import type { StepEntry } from '../items/ThreadStepChain';
+import { isHiddenWarning } from '../stores/hiddenWarnings';
 
 /**
  * Intermediate render item: a raw event, a chain of consecutive steps, or a finished
@@ -161,6 +162,7 @@ export function deriveRenderItems(events: ServerNotification[]): RenderItem[] {
 
   for (let i = 0; i < events.length; i++) {
     const event = events[i];
+    if (isHiddenWarning(event)) continue;
 
     if (event.method === 'item/started' || event.method === 'item/completed') {
       const { item, turnId } = event.params;

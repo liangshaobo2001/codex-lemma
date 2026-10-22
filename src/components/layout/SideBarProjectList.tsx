@@ -90,7 +90,7 @@ export function SideBarProjectList({ onNewAction, newActionTitle, renderList }: 
               ) : (
                 <FolderClosed className={`h-3.5 w-3.5 shrink-0 transition-transform`} />
               )}
-              <span className="truncate font-medium">{getFilename(project) || project}</span>
+              <span className="truncate font-normal">{getFilename(project) || project}</span>
               {isOpen(project) ? (
                 <ChevronDown
                   className={`h-3.5 w-3.5 shrink-0 transition-opacity ${hoveredProject === project ? 'opacity-100' : 'opacity-0'}`}

@@ -47,7 +47,7 @@ export function AccessModePopover() {
         <Button
           variant="ghost"
           size="sm"
-          className={`h-8 gap-2 px-2 ${selected.textColor} hover:bg-accent`}
+          className={`h-8 gap-2 px-2 font-normal ${selected.textColor} hover:bg-accent`}
         >
           <DisplayIcon className="h-4 w-4" />
           {!isNarrow && <span className="text-xs">{t(displayLabel)}</span>}

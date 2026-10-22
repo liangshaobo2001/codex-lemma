@@ -78,7 +78,7 @@ export const useSettingsStore = create<SettingState>()(
       resetHiddenNames: () => set({ hiddenNames: DEFAULT_HIDDEN_NAMES }),
       setTaskDetail: (taskDetail: TaskDetail) => set({ taskDetail }),
       autoCommitGitWorktree: true,
-      enableTaskCompleteBeep: 'always',
+      enableTaskCompleteBeep: 'never',
       preventSleepDuringTasks: true,
       showOpenAiModels: false,
       showReasoning: true,
@@ -108,9 +108,11 @@ export const useSettingsStore = create<SettingState>()(
     }),
     {
       name: 'settings-storage',
-      version: 13,
-      migrate: (persistedState: any) => {
+      version: 14,
+      migrate: (persistedState: any, version: number) => {
         if (persistedState) {
+          // v14 makes completion sound opt-in, including upgrades from the old enabled default.
+          if (version < 14) persistedState.enableTaskCompleteBeep = 'never';
           delete persistedState.analyticsEnabled;
           delete persistedState.analyticsConsentShown;
           // v13: telemetry consent moved to the backend (removed since).

@@ -259,11 +259,11 @@ function BaseModelSelector({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 gap-2 px-2 border border-transparent transition-all hover:border-input hover:bg-accent/50"
+          className="h-8 gap-2 px-2 font-normal border border-transparent transition-all hover:border-input hover:bg-accent/50"
           disabled={disabled}
         >
           <div className="flex items-center gap-1.5 text-xs text-foreground">
-            <span className="font-medium max-w-[160px] truncate">{activeLabel}</span>
+            <span className="font-normal max-w-[160px] truncate">{activeLabel}</span>
             {reasoningEffort !== undefined && reasoningEffort !== 'none' && (
               <span className="bg-muted px-1.5 py-0.5 rounded text-[10px] font-mono capitalize text-muted-foreground border">
                 {t(`chat:effort.${reasoningEffort}`, { defaultValue: reasoningEffort })}

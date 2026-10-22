@@ -474,7 +474,7 @@ export function ThreadList({ cwd: cwdProp, projectId, all = false }: ThreadListP
                     />
                   )}
                 </span>
-                <div className="text-sm font-medium truncate min-w-0 pr-2 flex items-center">
+                <div className="text-sm font-normal truncate min-w-0 pr-2 flex items-center">
                   <span className="truncate">
                     {thread.name ?? (thread.preview || t('threadList.newChat'))}
                   </span>

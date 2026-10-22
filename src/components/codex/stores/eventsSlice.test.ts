@@ -126,7 +126,7 @@ describe('backend request throughput', () => {
     decodeMs: 20000, ttftMs: 1500, tokensPerSec: 80, ...overrides,
   });
   const speed = () => useCodexStore.getState().throughputMap[THREAD]?.tokensPerSec;
-  beforeEach(() => { useCodexStore.setState({ throughputMap: {}, tokenUsageMap: {}, events: {} }); });
+  beforeEach(() => { useCodexStore.setState({ throughputMap: {}, lastThroughputMap: {}, tokenUsageMap: {}, events: {} }); });
   it('uses backend timing including hidden reasoning, independent of visible text and receipt delay', () => {
     start(); report(); expect(speed()).toBe(80);
   });
@@ -144,6 +144,14 @@ describe('backend request throughput', () => {
     start(); report(); report(); report({ requests: 2, tokensPerSec: 70 });
     expect(speed()).toBe(70);
     report(); expect(speed()).toBe(70);
+  });
+  it('retains the last valid reading while resetting current-turn aggregation', () => {
+    start(); report(); start('new');
+    expect(speed()).toBeNull();
+    expect(useCodexStore.getState().lastThroughputMap[THREAD].tokensPerSec).toBe(80);
+    report({turnId:'new',tokensPerSec:75});
+    expect(speed()).toBe(75);
+    expect(useCodexStore.getState().lastThroughputMap[THREAD].tokensPerSec).toBe(75);
   });
   it('ignores delayed measurements belonging to a previous turn', () => {
     start(); report(); start('new'); report(); expect(speed()).toBeNull();
