@@ -671,7 +671,8 @@ export const chat = {
       costTitle: '预估费用',
       costDisclaimer: '仅为此对话的估算，实际账单可能不同。',
       costByModel: '按模型统计的费用',
-      speedTitle: '上一轮 {{requests}} 次已测请求的近似生成速度（含推理，不含工具执行）；平均首 token 延迟 {{ttft}} 秒。根据流事件计时，非引擎内部指标。',
+      speedTitle:
+        '上一轮 {{requests}} 次已测请求的近似生成速度（含推理，不含工具执行）；平均首 token 延迟 {{ttft}} 秒。根据流事件计时，非引擎内部指标。',
       cacheTitle: '本会话累计提示缓存命中：{{input}} 个输入 token 中命中 {{cached}} 个',
       cacheUnavailable: '尚无有效的会话缓存计数',
       cacheUnknown: '缓存命中 —',

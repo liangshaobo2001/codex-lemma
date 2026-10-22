@@ -28,7 +28,8 @@ export const en = {
       cost: 'Estimated cost',
       costHint: "The thread's estimated cost. Shown only for models with known prices.",
       speed: 'Speed',
-      speedHint: 'Approximate decode speed across measured requests in a turn, including reasoning; hover for TTFT.',
+      speedHint:
+        'Approximate decode speed across measured requests in a turn, including reasoning; hover for TTFT.',
       cache: 'Cache hit',
       cacheHint: "Share of this session's cumulative input served from the prompt cache.",
       context: 'Context',
