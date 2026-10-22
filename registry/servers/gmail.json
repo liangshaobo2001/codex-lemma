@@ -1,0 +1,34 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.milisp.codexia/gmail",
+  "title": "Gmail",
+  "description": "Read, search and draft email",
+  "version": "1.0.0",
+  "icons": [
+    {
+      "src": "https://cdn.jsdelivr.net/gh/milisp/codexia@master/registry/icons/gmail.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": [
+        "any"
+      ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://gmailmcp.googleapis.com/mcp/v1"
+    }
+  ],
+  "_meta": {
+    "io.modelcontextprotocol.registry/publisher-provided": {
+      "io.github.milisp.codexia": {
+        "configName": "gmail",
+        "category": "Automation & Integration",
+        "official": true,
+        "featured": true,
+        "access": "Authorization required",
+        "authorizationRequired": true
+      }
+    }
+  }
+}

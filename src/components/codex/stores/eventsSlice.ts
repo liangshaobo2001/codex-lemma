@@ -1,0 +1,305 @@
+import type { StateCreator } from 'zustand';
+import type { ServerNotification } from '@/bindings';
+import type { ThreadGoal, ThreadTokenUsage } from '@/bindings/v2';
+import { compactDeltaEvents } from './eventUtils';
+import { isTranscriptEvent } from './transcriptEvents';
+import type { CodexStore, EventsSlice, ReasoningLive, TurnTiming } from './types';
+
+export const createEventsSlice: StateCreator<CodexStore, [], [], EventsSlice> = (set) => ({
+  events: {},
+  threadStatusMap: {},
+  turnTimingMap: {},
+  commandStatusMap: {},
+  commandDurationMap: {},
+  retryNoticeMap: {},
+  pendingReviewMap: {},
+  approvedDenialIds: {},
+  tokenUsageMap: {},
+  reasoningLiveMap: {},
+  throughputMap: {},
+  goalMap: {},
+  goalEnabled: false,
+
+  addEvent: (threadId: string, event: ServerNotification) => {
+    set((state: CodexStore) => {
+      const existingEvents = state.events[threadId] || [];
+
+      // Each retry emits another error, so keeping them out of the transcript
+      // is what stops "Reconnecting... 1/5" from stacking up five lines.
+      let isRetryNotice = false;
+      let retryNoticeMap = state.retryNoticeMap;
+      if (event.method === 'error' && event.params.willRetry) {
+        isRetryNotice = true;
+        retryNoticeMap = { ...retryNoticeMap, [threadId]: event.params.error.message };
+      } else if (retryNoticeMap[threadId] !== undefined) {
+        const { [threadId]: _cleared, ...rest } = retryNoticeMap;
+        retryNoticeMap = rest;
+      }
+
+      // Deduplicate turn/diff/updated events
+      // If this is a turn/diff/updated event, remove previous ones with the same turnId
+      let filteredEvents = existingEvents;
+      if (event.method === 'turn/diff/updated') {
+        const newTurnId = event.params.turnId;
+        filteredEvents = existingEvents.filter((e) => {
+          if (e.method !== 'turn/diff/updated') return true;
+          const existingTurnId = e.params.turnId;
+          return existingTurnId !== newTurnId;
+        });
+      }
+
+      const newEvents =
+        isRetryNotice || !isTranscriptEvent(event)
+          ? state.events
+          : {
+              ...state.events,
+              [threadId]: compactDeltaEvents(filteredEvents, event),
+            };
+
+      let threadStatusMap = state.threadStatusMap;
+      if (event.method === 'thread/status/changed') {
+        threadStatusMap = { ...threadStatusMap, [threadId]: event.params.status };
+      }
+
+      // Update turn timing map: single source of truth for turn elapsed/duration,
+      // independent of thread/status/changed (see TurnTiming doc comment).
+      let turnTimingMap = state.turnTimingMap;
+      if (event.method === 'turn/started') {
+        const { turn } = event.params;
+        turnTimingMap = {
+          ...turnTimingMap,
+          [threadId]: {
+            turnId: turn.id,
+            startedAtMs: typeof turn.startedAt === 'number' ? turn.startedAt * 1000 : Date.now(),
+            durationMs: null,
+            status: 'inProgress',
+          } satisfies TurnTiming,
+        };
+      } else if (event.method === 'turn/completed') {
+        const { turn } = event.params;
+        const existing = turnTimingMap[threadId];
+        // Only update if this completion matches the turn we're tracking (or we have none tracked).
+        if (!existing || existing.turnId === turn.id) {
+          turnTimingMap = {
+            ...turnTimingMap,
+
+            [threadId]: {
+              turnId: turn.id,
+              startedAtMs:
+                existing?.startedAtMs ??
+                (typeof turn.startedAt === 'number' ? turn.startedAt * 1000 : Date.now()),
+              durationMs: turn.durationMs,
+              status: turn.status === 'inProgress' ? 'completed' : turn.status,
+            },
+          };
+        }
+      } else if (event.method === 'error') {
+        // A non-retryable error may arrive without any turn/completed, so mark
+        // the turn failed here or the UI shows "Working..." forever.
+        const existing = turnTimingMap[threadId];
+        if (
+          existing &&
+          existing.turnId === event.params.turnId &&
+          existing.status === 'inProgress' &&
+          !event.params.willRetry
+        ) {
+          turnTimingMap = {
+            ...turnTimingMap,
+            [threadId]: {
+              ...existing,
+              durationMs: Date.now() - existing.startedAtMs,
+              status: 'failed',
+            },
+          };
+        }
+      }
+
+      // A review leaves the pending set when it completes, or when its turn ends
+      // without a completion (interrupted turns never send one).
+      let pendingReviewMap = state.pendingReviewMap;
+      const pendingReviews = pendingReviewMap[threadId];
+      if (event.method === 'item/autoApprovalReview/started') {
+        const { reviewId, action } = event.params;
+        pendingReviewMap = {
+          ...pendingReviewMap,
+          [threadId]: { ...pendingReviews, [reviewId]: action },
+        };
+      } else if (
+        event.method === 'item/autoApprovalReview/completed' &&
+        pendingReviews?.[event.params.reviewId]
+      ) {
+        const { [event.params.reviewId]: _done, ...rest } = pendingReviews;
+        pendingReviewMap = { ...pendingReviewMap, [threadId]: rest };
+      } else if (event.method === 'turn/completed' && pendingReviews) {
+        const { [threadId]: _cleared, ...rest } = pendingReviewMap;
+        pendingReviewMap = rest;
+      }
+
+      // Update command status map
+      let commandStatusMap = state.commandStatusMap;
+      let commandDurationMap = state.commandDurationMap;
+      let goalMap = state.goalMap;
+      if (event.method === 'thread/goal/updated') {
+        goalMap = { ...goalMap, [threadId]: event.params.goal };
+      } else if (event.method === 'thread/goal/cleared') {
+        const newGoalMap = { ...goalMap };
+        delete newGoalMap[threadId];
+        goalMap = newGoalMap;
+      }
+      if (event.method === 'item/started' && event.params.item?.type === 'commandExecution') {
+        commandStatusMap = {
+          ...commandStatusMap,
+          [event.params.item.id]: event.params.item.status,
+        };
+      } else if (
+        event.method === 'item/completed' &&
+        event.params.item?.type === 'commandExecution'
+      ) {
+        commandStatusMap = {
+          ...commandStatusMap,
+          [event.params.item.id]: event.params.item.status,
+        };
+        commandDurationMap = {
+          ...commandDurationMap,
+          [event.params.item.id]: event.params.item.durationMs,
+        };
+      }
+
+      let reasoningLiveMap = state.reasoningLiveMap;
+      if (
+        (event.method === 'item/started' || event.method === 'item/completed') &&
+        event.params.item?.type === 'reasoning'
+      ) {
+        const id = event.params.item.id;
+        const live = reasoningLiveMap[id];
+        const next: ReasoningLive =
+          event.method === 'item/started'
+            ? {
+                text: live?.text ?? '',
+                startedAtMs: live?.startedAtMs ?? Date.now(),
+                durationMs: null,
+              }
+            : {
+                text: live?.text ?? '',
+                startedAtMs: live?.startedAtMs ?? Date.now(),
+                durationMs: live ? Date.now() - live.startedAtMs : null,
+              };
+        reasoningLiveMap = { ...reasoningLiveMap, [id]: next };
+      } else if (
+        event.method === 'item/reasoning/textDelta' ||
+        event.method === 'item/reasoning/summaryTextDelta'
+      ) {
+        const { itemId, delta } = event.params;
+        const live = reasoningLiveMap[itemId];
+        reasoningLiveMap = {
+          ...reasoningLiveMap,
+          [itemId]: {
+            text: (live?.text ?? '') + delta,
+            startedAtMs: live?.startedAtMs ?? Date.now(),
+            durationMs: live?.durationMs ?? null,
+          },
+        };
+      }
+
+      // App-server exposes turn duration, not provider decode timing. Count output
+      // over the whole observed turn so hidden reasoning and tool calls cannot
+      // inflate a rate timed only from the first visible text delta.
+      let throughputMap = state.throughputMap;
+      const throughput = throughputMap[threadId];
+      if (event.method === 'turn/started') {
+        throughputMap = {
+          ...throughputMap,
+          [threadId]: {
+            turnId: event.params.turn.id,
+            baselineOutputTokens: state.tokenUsageMap[threadId]?.total.outputTokens ?? null,
+            outputTokens: 0,
+            durationMs: null,
+            tokensPerSec: null,
+          },
+        };
+      } else if (
+        event.method === 'thread/tokenUsage/updated' &&
+        throughput?.turnId === event.params.turnId
+      ) {
+        const { total, last } = event.params.tokenUsage;
+        const baseline = throughput.baselineOutputTokens ?? total.outputTokens - last.outputTokens;
+        const outputTokens = Math.max(0, total.outputTokens - baseline);
+        const durationMs = throughput.durationMs;
+        throughputMap = {
+          ...throughputMap,
+          [threadId]: {
+            ...throughput,
+            baselineOutputTokens: baseline,
+            outputTokens,
+            tokensPerSec:
+              durationMs !== null && durationMs >= 300 && outputTokens > 0
+                ? outputTokens / (durationMs / 1000)
+                : null,
+          },
+        };
+      } else if (event.method === 'turn/completed' && throughput?.turnId === event.params.turn.id) {
+        const durationMs = event.params.turn.durationMs;
+        throughputMap = {
+          ...throughputMap,
+          [threadId]: {
+            ...throughput,
+            durationMs,
+            tokensPerSec:
+              durationMs !== null && durationMs >= 300 && throughput.outputTokens > 0
+                ? throughput.outputTokens / (durationMs / 1000)
+                : null,
+          },
+        };
+      }
+
+      return {
+        events: newEvents,
+        reasoningLiveMap,
+        throughputMap,
+        threadStatusMap,
+        turnTimingMap,
+        commandStatusMap,
+        commandDurationMap,
+        retryNoticeMap,
+        pendingReviewMap,
+        goalMap,
+      };
+    });
+  },
+
+  markDenialApproved: (reviewId: string) => {
+    set((state: CodexStore) => ({
+      approvedDenialIds: { ...state.approvedDenialIds, [reviewId]: true },
+    }));
+  },
+
+  setTokenUsage: (threadId: string, data: ThreadTokenUsage) => {
+    set((state: CodexStore) => ({
+      tokenUsageMap: {
+        ...state.tokenUsageMap,
+        [threadId]: data,
+      },
+    }));
+  },
+
+  setGoal: (threadId: string, goal: ThreadGoal) => {
+    set((state: CodexStore) => ({
+      goalMap: {
+        ...state.goalMap,
+        [threadId]: goal,
+      },
+    }));
+  },
+
+  clearGoal: (threadId: string) => {
+    set((state: CodexStore) => {
+      const newGoalMap = { ...state.goalMap };
+      delete newGoalMap[threadId];
+      return { goalMap: newGoalMap };
+    });
+  },
+
+  setGoalEnabled: (goalEnabled: boolean) => {
+    set({ goalEnabled });
+  },
+});

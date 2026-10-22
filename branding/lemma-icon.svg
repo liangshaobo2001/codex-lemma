@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Codex Lemma app icon: a heavy-stroke lambda (λ3) on a near-black rounded tile. -->
+  <rect x="0" y="0" width="1024" height="1024" rx="225" fill="#111111"/>
+  <g transform="translate(512 512) scale(6.76)" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M -24 -33 L -15 -33 Q -9 -33 -6 -26 L 23 33"/>
+    <path d="M 3 -4 L -22 33"/>
+  </g>
+</svg>

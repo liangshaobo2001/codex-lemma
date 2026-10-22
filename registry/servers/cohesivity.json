@@ -1,0 +1,32 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.milisp.codexia/cohesivity",
+  "title": "Cohesivity",
+  "description": "Postgres, hosting and storage for your apps, no account needed",
+  "version": "1.0.0",
+  "icons": [
+    {
+      "src": "https://cdn.jsdelivr.net/gh/milisp/codexia@master/registry/icons/cohesivity.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": [
+        "any"
+      ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://cohesivity.ai/mcp"
+    }
+  ],
+  "_meta": {
+    "io.modelcontextprotocol.registry/publisher-provided": {
+      "io.github.milisp.codexia": {
+        "configName": "cohesivity",
+        "category": "Infrastructure & DevOps",
+        "official": false,
+        "access": "Sign-in optional"
+      }
+    }
+  }
+}

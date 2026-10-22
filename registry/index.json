@@ -1,0 +1,24 @@
+{
+  "categories": [
+    "Development & Testing",
+    "Project Management",
+    "Automation & Integration",
+    "Infrastructure & DevOps",
+    "Analytics"
+  ],
+  "servers": [
+    "github",
+    "slack",
+    "linear",
+    "gmail",
+    "calendar",
+    "drive",
+    "context7",
+    "deepwiki",
+    "you-search",
+    "parallel-search",
+    "cohesivity",
+    "keenable-search",
+    "fxmacrodata"
+  ]
+}

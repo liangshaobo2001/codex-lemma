@@ -1,0 +1,173 @@
+import {
+  ChevronDown,
+  ChevronRight,
+  Ellipsis,
+  FolderClosed,
+  FolderOpen,
+  ScrollText,
+  SquarePen,
+  X,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ConfirmProjectActionDialog } from '@/features/projects/ProjectDialogs';
+import { findProjectForCwd } from '@/features/projects/projectModel';
+import { useServerProjectsStore } from '@/features/projects/useServerProjectsStore';
+import { isPhone } from '@/hooks/runtime';
+import { useLayoutStore } from '@/stores';
+import { useAgentSettingsStore } from '@/stores/useAgentSettingsStore';
+import { useWorkspaceStore } from '@/stores/useWorkspaceStore';
+import { getFilename } from '@/utils/getFilename';
+import { RECENT_PROJECT_LIMIT, sortByRecentUse } from './projectRecency';
+import { SideBarShowMore } from './SideBarShowMore';
+
+type Props = {
+  onNewAction: (project: string) => void;
+  newActionTitle: (projectName: string) => string;
+  renderList: (project: string) => React.ReactNode;
+};
+
+export function SideBarProjectList({ onNewAction, newActionTitle, renderList }: Props) {
+  const { t } = useTranslation('app');
+  const { projects, historyProjects, removeProject, setCwd } = useWorkspaceStore();
+  const { setInstructionType } = useAgentSettingsStore();
+  const { setView, expandedProjects, setProjectExpanded } = useLayoutStore();
+  const [hoveredProject, setHoveredProject] = useState<string | null>(null);
+  const serverProjects = useServerProjectsStore((s) => s.projects);
+  const serverStatus = useServerProjectsStore((s) => s.status);
+  const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const sorted = useMemo(
+    () => sortByRecentUse(projects, historyProjects),
+    [projects, historyProjects]
+  );
+  const visible = showAll ? sorted : sorted.slice(0, RECENT_PROJECT_LIMIT);
+
+  // A project backed by app-server is deleted there (after confirming), since
+  // the local list is only a mirror of it and would bring it back.
+  const removeProjectAt = (project: string) => {
+    const backing = serverStatus === 'ready' ? findProjectForCwd(serverProjects, project) : null;
+    if (backing) setDeleting({ id: backing.id, name: backing.name });
+    else removeProject(project);
+  };
+
+  const isOpen = (project: string) => expandedProjects[project] ?? true;
+  const toggleProject = (project: string, open: boolean) => setProjectExpanded(project, open);
+
+  const openAgentInstructions = (project: string) => {
+    setCwd(project);
+    setView('agents-md');
+    setInstructionType('project');
+  };
+
+  return (
+    <div className="flex min-h-0 w-full flex-col gap-2 px-2 pb-2">
+      {visible.map((project) => (
+        <Collapsible
+          key={project}
+          open={isOpen(project)}
+          onOpenChange={(open) => toggleProject(project, open)}
+          className="bg-sidebar/30"
+        >
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: hover-only affordance, keyboard users reach the controls inside directly */}
+          <div
+            className="flex items-center gap-1 px-1 py-0.5 text-xs transition-colors hover:bg-foreground/10"
+            title={project}
+            onMouseEnter={() => setHoveredProject(project)}
+            onMouseLeave={() => setHoveredProject(null)}
+          >
+            <CollapsibleTrigger className="flex min-w-0 flex-1 items-center gap-2 text-left">
+              {isOpen(project) ? (
+                <FolderOpen className={`h-3.5 w-3.5 shrink-0 transition-transform`} />
+              ) : (
+                <FolderClosed className={`h-3.5 w-3.5 shrink-0 transition-transform`} />
+              )}
+              <span className="truncate font-medium">{getFilename(project) || project}</span>
+              {isOpen(project) ? (
+                <ChevronDown
+                  className={`h-3.5 w-3.5 shrink-0 transition-opacity ${hoveredProject === project ? 'opacity-100' : 'opacity-0'}`}
+                />
+              ) : (
+                <ChevronRight
+                  className={`h-3.5 w-3.5 shrink-0 transition-opacity ${hoveredProject === project ? 'opacity-100' : 'opacity-0'}`}
+                />
+              )}
+            </CollapsibleTrigger>
+
+            {/* Remove/Instructions edit the desktop's own project list, so a
+                phone — which only mirrors it — does not offer them. */}
+            {!isPhone() && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    title={t('projects.actionsFor', { name: getFilename(project) || project })}
+                    className="shrink-0"
+                  >
+                    <Ellipsis />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => removeProjectAt(project)}>
+                    <X /> {t('projects.remove')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openAgentInstructions(project)}>
+                    <ScrollText /> {t('projects.instructions')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              title={newActionTitle(getFilename(project) || project)}
+              onClick={() => onNewAction(project)}
+              className="shrink-0"
+            >
+              <SquarePen />
+            </Button>
+          </div>
+
+          <CollapsibleContent>{renderList(project)}</CollapsibleContent>
+        </Collapsible>
+      ))}
+
+      <SideBarShowMore
+        hiddenCount={sorted.length - RECENT_PROJECT_LIMIT}
+        expanded={showAll}
+        onToggle={() => setShowAll((v) => !v)}
+      />
+
+      <ConfirmProjectActionDialog
+        open={deleting !== null}
+        title={t('projects.delete')}
+        description={t('projects.deleteLocalDescription', {
+          name: deleting?.name ?? t('projects.thisProject'),
+        })}
+        confirmLabel={t('projects.delete')}
+        destructive
+        onConfirm={() =>
+          deleting ? useServerProjectsStore.getState().remove(deleting.id) : Promise.resolve()
+        }
+        onOpenChange={(open) => !open && setDeleting(null)}
+      />
+
+      {/* The phone's home screen says this itself, with a retry. */}
+      {projects.length === 0 && !isPhone() && (
+        <div className="rounded-lg border border-sidebar-border bg-sidebar/30 px-3 py-3 text-xs text-muted-foreground">
+          {t('projects.empty')}
+        </div>
+      )}
+    </div>
+  );
+}

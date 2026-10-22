@@ -1,0 +1,43 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "model_provider": "deepseek",
+      "base_url": "https://api.deepseek.com",
+      "api_key_url": "https://platform.deepseek.com/api_keys",
+      "signup_url": "https://platform.deepseek.com",
+      "env_key": "",
+      "auto_discover": false,
+      "models": []
+    },
+    {
+      "model_provider": "openrouter",
+      "base_url": "https://openrouter.ai/api/v1",
+      "api_key_url": "https://openrouter.ai/settings/keys",
+      "signup_url": "https://openrouter.ai",
+      "env_key": "",
+      "auto_discover": false,
+      "models": []
+    },
+    {
+      "model_provider": "ollama",
+      "base_url": "http://localhost:11434/v1",
+      "signup_url": "https://ollama.com",
+      "env_key": "",
+      "auto_discover": true
+    },
+    {
+      "model_provider": "lmstudio",
+      "base_url": "http://localhost:1234/v1",
+      "signup_url": "https://lmstudio.ai",
+      "env_key": "",
+      "auto_discover": true
+    },
+    {
+      "model_provider": "custom",
+      "base_url": "http://localhost:8000/v1",
+      "env_key": "",
+      "auto_discover": false
+    }
+  ]
+}

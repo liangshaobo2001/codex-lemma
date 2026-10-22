@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSRequiresAquaSystemAppearance</key>
+  <false/>
+  <key>NSAppleEventsUsageDescription</key>
+  <string>Codexia needs to send Apple Events to other applications.</string>
+  <key>NSAppleScriptEnabled</key>
+  <true/>
+  <key>NSCameraUsageDescription</key>
+  <string>Codexia needs camera access for capturing images for AI processing.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Codexia needs microphone access for voice input features.</string>
+</dict>
+</plist>

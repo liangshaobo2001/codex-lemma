@@ -1,0 +1,76 @@
+name: 🪲 Bug Report
+description: Report an issue that should be fixed
+labels:
+  - bug
+  - needs triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for submitting a bug report! It helps make Codex Lemma better for everyone.
+
+        If you need help or support using Codex Lemma, and are not reporting a bug, please post on [project issues](https://github.com/liangshaobo2001/codex-lemma/issues), where you can ask questions or engage with others on ideas for how to improve codexia.
+
+        Make sure you are running the [latest](https://github.com/liangshaobo2001/codex-lemma/releases) version of Codex Lemma and [Codex CLI](https://github.com/openai/codex/releases). The bug you are experiencing may already have been fixed.
+
+        Please try to include as much information as possible.
+
+        Back up your configuration before troubleshooting. Redact credentials and private workspace data.
+
+  - type: input
+    id: version
+    attributes:
+      label: What version of Codex Lemma is running?
+      description: About the version
+    validations:
+      required: true
+  - type: input
+    id: codex-version
+    attributes:
+      label: What version of Codex is running?
+      description: The installer bundles Codex CLI 0.163.0; note any override.
+    validations:
+      required: true
+  - type: input
+    id: provider
+    attributes:
+      label: Which provider were you using?
+      description: Like `OpenAI`、`Gemini`、`Qwen`, etc.
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Which model were you using?
+      description: Like `gpt-4.1`, `o4-mini`, `o3`, etc.
+  - type: input
+    id: platform
+    attributes:
+      label: What platform is your computer?
+      description: |
+        For MacOS and Linux: copy the output of `uname -mprs`
+        For Windows: copy the output of `"$([Environment]::OSVersion | ForEach-Object VersionString) $(if ([Environment]::Is64BitOperatingSystem) { "x64" } else { "x86" })"` in the PowerShell console
+  - type: textarea
+    id: actual
+    attributes:
+      label: What issue are you seeing?
+      description: Please include the full error messages and prompts with PII redacted. If possible, please provide text instead of a screenshot.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What steps can reproduce the bug?
+      description: Explain the bug and provide info that can reproduce it.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What is the expected behavior?
+      description: If possible, please provide text instead of a screenshot.
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional information
+      description: Is there anything else you think we should know?

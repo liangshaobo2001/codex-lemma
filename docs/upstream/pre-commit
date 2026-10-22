@@ -1,0 +1,25 @@
+#!/bin/bash
+
+echo "🛡️ Running pre-commit hook: Checking for relevant changes..."
+
+cd "$(git rev-parse --show-toplevel)"
+
+# check bunx tsc --noEmit
+RELEVANT_FILES=$(git diff --cached --name-only | grep -E '\.(ts|tsx|js|json|rs|html|css|scss|toml|vue)$|^src/')
+
+if [ -z "$RELEVANT_FILES" ]; then
+  echo "✅ No relevant frontend/tauri changes detected – skipping bunx tsc --noEmit"
+  exit 0
+fi
+
+echo "🔧 Relevant changes detected – executing: bunx tsc --noEmit"
+bunx tsc --noEmit
+
+if [ $? -eq 0 ]; then
+    echo "✅ bunx tsc --noEmit successful - proceeding with commit"
+    exit 0
+else
+    echo "❌ bunx tsc --noEmit failed - commit aborted"
+    echo "Please fix the build errors before committing"
+    exit 1
+fi

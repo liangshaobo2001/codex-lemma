@@ -1,0 +1,39 @@
+name: Windows checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22'
+      - name: Prepare build dependencies
+        shell: pwsh
+        run: |
+          bun install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip install libclang==18.1.1 --target .build-tools/libclang
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "LIBCLANG_PATH=$((Resolve-Path .build-tools/libclang/clang/native).Path)" >> $env:GITHUB_ENV
+          rustup update stable
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          rustup default stable
+          node scripts/prepare-codex.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          bun run build
+      - run: bun run test
+      - run: bun run validate-registry
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo test --workspace --locked

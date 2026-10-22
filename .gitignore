@@ -1,0 +1,58 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+target
+
+# src/bindings
+
+# Local agent notes
+# AGENTS.md
+# CLAUDE.md
+.claude/
+.gemini/
+
+.mcp.json
+
+.env
+.env.local
+.env.development
+.env.production
+
+docs/design.md
+docs/DELTA_MERGE_FIX.md
+ios/Codexia.xcodeproj/
+ios/Codexia/Info.plist
+ios/build/
+
+# keke sidecar binaries built in CI (see tauri.keke.conf.json)
+src-tauri/binaries/
+keke-agent/
+
+# Codex CLI staged for the Windows installer (scripts/prepare-codex.mjs)
+src-tauri/resources/codex/
+
+# Local build dependencies and release staging
+.build-tools/
+release-assets/

@@ -1,0 +1,65 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "desktop",
+  "description": "Capability for the main window",
+  "platforms": [
+    "macOS",
+    "windows",
+    "linux"
+  ],
+  "windows": [
+    "main",
+    "main-*",
+    "about"
+  ],
+  "permissions": [
+    "core:event:allow-emit-to",
+    "core:window:allow-start-dragging",
+    "core:window:allow-close",
+    "core:window:allow-is-maximized",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-minimize",
+    "core:window:allow-set-title",
+    "core:webview:default",
+    "opener:allow-reveal-item-in-dir",
+    "dialog:default",
+    "dialog:allow-ask",
+    "dialog:allow-message",
+    "process:default",
+    "shell:default",
+    {
+      "identifier": "shell:allow-spawn",
+      "allow": [
+        {
+          "name": "zsh",
+          "cmd": "/bin/zsh",
+          "args": true
+        },
+        {
+          "name": "bash",
+          "cmd": "/bin/bash",
+          "args": true
+        },
+        {
+          "name": "sh",
+          "cmd": "/bin/sh",
+          "args": true
+        },
+        {
+          "name": "fish",
+          "cmd": "/usr/bin/fish",
+          "args": true
+        },
+        {
+          "name": "pwsh",
+          "cmd": "pwsh",
+          "args": true
+        }
+      ]
+    },
+    "shell:allow-stdin-write",
+    "shell:allow-kill",
+    "notification:default",
+    "screenshots:default"
+  ]
+}

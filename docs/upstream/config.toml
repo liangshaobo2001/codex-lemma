@@ -1,0 +1,27 @@
+model = "gpt-5.2-codex"
+model_reasoning_effort = "medium"
+
+[model_providers.openrouter]
+name = "OpenRouter"
+base_url = "https://openrouter.ai/api/v1"
+wire_api = "responses"
+requires_openai_auth = true
+
+# set your openrouter api key in ~/.codex/auth.json
+# {
+#  "OPENAI_API_KEY": "sk-your-api-key"
+# }
+
+[model_providers.hf]
+name = "hf"
+base_url = "https://router.huggingface.co/v1"
+env_key = "HF_API_TOKEN"
+
+[model_providers.ollama]
+name = "ollama"
+base_url = "http://localhost:11434/v1"
+
+[model_providers.google]
+name = "Google"
+base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
+env_key = "GEMINI_API_KEY"

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.milisp.codexia/parallel-search",
+  "title": "Parallel",
+  "description": "Web search and URL extraction",
+  "version": "1.0.0",
+  "icons": [
+    {
+      "src": "https://cdn.jsdelivr.net/gh/milisp/codexia@master/registry/icons/parallel-search.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": [
+        "any"
+      ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://search.parallel.ai/mcp"
+    }
+  ],
+  "_meta": {
+    "io.modelcontextprotocol.registry/publisher-provided": {
+      "io.github.milisp.codexia": {
+        "configName": "parallel-search",
+        "category": "Development & Testing",
+        "official": true,
+        "featured": true,
+        "access": "No account required"
+      }
+    }
+  }
+}

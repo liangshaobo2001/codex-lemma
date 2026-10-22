@@ -1,0 +1,102 @@
+# AGENTS.md
+
+## Project Info
+- Codex Lemma is a Windows desktop workspace for Codex CLI, forked from Codexia v0.58.0.
+- Use `codex app-server` through shared Rust crates and the loopback web API.
+
+### Project tech
+- Package manager: bun
+- Framework: React + shadcn + tailwindcss + TypeScript + Tauri v2
+- Don't use emit_all
+- UI: use shadcn UI components first, Button, Input, etc.
+- code comment language: English-only
+- Zustand: for state management with persistence
+- Don't break Fast Refresh: a `.tsx` file rendering UI must only export PascalCase components (no lowercase JSX-returning helpers), otherwise HMR falls back to a full page reload and drops in-flight events
+
+## Product UI
+- Build a product interface, not an inline documentation page. Make the user's task and primary action obvious before adding explanatory copy.
+- Keep default views concise: clear labels, controls, and compact status indicators. Add helper text only when it changes the user's immediate decision or prevents a likely mistake.
+- Use progressive disclosure for technical details: help popovers, expandable advanced settings, or linked documentation. Keep configuration paths, protocol terminology, implementation details, and long compatibility or security explanations out of the default view unless needed for the current task.
+- Show actionable errors and permission requirements when relevant, close to the affected control. Do not repeat generic warnings throughout a panel or present a saved configuration as a verified connection.
+- Use recognizable app or service icons with short names for selection lists. Icon-only actions need accessible labels and tooltips; unfamiliar concepts still need visible labels.
+- Present supported capabilities clearly. A few presets must not make a general integration feature look limited to those providers; keep adding custom integrations easy to discover.
+- Before finishing a UI change, review the default view: remove repeated explanations, move reference material into help, and check that the next action is clear without reading paragraphs.
+
+### Bot experience
+- Organize bots around ongoing responsibilities and outcomes. Make conversation, current work, scheduled work, and results easy to reach; keep runtime configuration secondary.
+- Keep bot settings focused on identity and permissions. Select connected tools from the composer Plus menu and manage integrations in Plugins. Put raw MCP JSON, runtime options, configuration paths, and migration/import details behind advanced controls.
+- Separate app setup from per-bot access selection. Reuse configured integrations, show their actual connection state, and let users choose which tools each bot may access without repeating setup instructions.
+- Treat conversation as a natural entry point for assigning work and changing direction. Provide visible controls for reviewing activity, managing schedules, and stopping work where those capabilities exist.
+- Surface progress, results, and decisions that need the user. Keep protocol logs and diagnostic details available on demand instead of making users interpret them to understand task status.
+- Use product references as interaction inspiration, not as evidence that Codexia has the same capabilities. Never imply cloud execution, always-on availability, verified authentication, or permission enforcement unless the implementation supports it.
+- Reference: [OpenAI Dots introduction](https://openai.com/index/introducing-dots/) and [Dots setup and controls](https://help.openai.com/en/articles/20001530-getting-started-with-your-dot). These rules adapt the documented product structure to Codexia; they are not OpenAI design requirements.
+
+## Common Commands
+- `bun tauri dev` - read the backend output
+- `bunx tsc --noEmit` - test frontend if frontend change
+- `bun run test` - run frontend Vitest tests when frontend code or tests change
+- `bunx react-doctor@latest --no-telemetry --scope changed` - fix frontend if frontend change
+- `bunx --bun shadcn@latest add <dep>` - add shadcn dep
+- `cargo check -p codex-lemma` if rust code change
+- only `cargo build` when I ask
+- Don't run `cargo fmt`
+
+## Rust Validation
+- Run local validation when Rust code, Cargo manifests, or Cargo.lock change; do not rely on CI to catch compilation errors, clippy warnings, or failing tests.
+- For an isolated crate change, run `cargo clippy -p <package> --all-targets --locked -- -D warnings` and `cargo test -p <package> --locked`. Include affected dependent packages when relevant.
+- For shared crates, cross-crate changes, or workspace dependency changes, run the same checks as CI: `cargo clippy --workspace --all-targets --locked -- -D warnings` and `cargo test --workspace --locked`.
+- Tauri context generation requires the frontend dist directory. If it is missing, run `mkdir -p dist` for Rust-only validation; use a real frontend build when validating embedded assets.
+- Pure frontend, documentation, or workflow-only changes do not require Rust validation unless they affect Rust compilation or test behavior.
+- Report any checks that could not run and why. Do not suppress warnings or skip failing tests just to pass validation.
+- Clippy and tests compile code as needed; the restriction on `cargo build` does not prohibit these validation commands. Local checks do not replace CI's Linux/platform-specific checks.
+
+## Frontend Tests
+- Keep regression tests with the component or hook that owns the behavior. When behavior moves, migrate the tests and update their mocks and interactions.
+- Do not delete or skip a failing test just to make CI pass. Remove obsolete assertions only when the behavior is intentionally removed; preserve coverage when the behavior still exists.
+- Prefer accessible queries such as `getByRole('button', { name: ... })` for UI interactions.
+
+## Project Structure
+codexia/
+├── src/                    # React frontend source
+│   ├── components/         # UI components
+│   ├── components/ui/` - shadcn UI components
+│   ├── components/cc/` - claude-code components
+│   ├── components/codex/` - codex components
+│   ├── views/              # View components
+│   ├── hooks/              # Custom React hooks
+│   ├── store/              # Zustand state management
+│   ├── services/           # Business logic services
+│   └── types/              # TypeScript type definitions
+├── src-tauri/              # Rust backend source
+│   ├── src/
+│   │   ├── lib.rs          # Main Tauri application
+│   ├── capabilities/       # Tauri capabilities
+│   └── Cargo.toml          # Rust dependencies
+├── Cargo.toml              # Workspace root Cargo.toml
+├── crates/
+│   ├── codex/              # Codex crate
+│   ├── cc/                 # Claude Code crate
+│   ├── db/                 # Database crate
+│   └── shared/             # Shared crate
+- use `@/hooks` `@/types` etc.
+
+## Skill
+- when remove a key from zustand persist store, you must update store version and migrate
+
+## docs
+- CONTRIBUTING.md
+- docs/RELEASING.md
+
+## Web first
+
+- Web (`codexia-web`) is the primary runtime; the desktop app is a shell around the same UI.
+- New backend features go into shared crates plus an HTTP/WS handler in `web/src/handlers/`. Do not add a matching `#[tauri::command]` by default.
+- Add a Tauri command only for desktop-only capabilities (native dialogs, window control, open local apps, dictation, sleep prevention). Gate its UI with the runtime check so the web build hides it.
+- Frontend calls go through the web API client; do not add new `invoke` wrappers for features that work over HTTP.
+
+## tailscale for remote control
+
+- ios connect to desktop
+
+## cwd
+cwd mean current working dir

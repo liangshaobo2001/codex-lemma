@@ -1,0 +1,37 @@
+{
+  "app": {
+    "windows": [
+      {
+        "title": "Codex Lemma",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 400,
+        "minHeight": 360,
+        "decorations": false,
+        "devtools": true,
+        "shadow": true
+      }
+    ]
+  },
+  "bundle": {
+    "targets": [
+      "nsis"
+    ],
+    "resources": {
+      "resources/codex/": "codex/",
+      "../LICENSE": "LICENSE.txt",
+      "../THIRD_PARTY_NOTICES.md": "THIRD_PARTY_NOTICES.md"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": [
+          "SimpChinese",
+          "English"
+        ],
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico"
+      }
+    }
+  }
+}

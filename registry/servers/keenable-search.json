@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.milisp.codexia/keenable-search",
+  "title": "Keenable",
+  "description": "Web search and page fetch",
+  "version": "1.0.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://api.keenable.ai/mcp?keenable_title=codexia"
+    }
+  ],
+  "_meta": {
+    "io.modelcontextprotocol.registry/publisher-provided": {
+      "io.github.milisp.codexia": {
+        "configName": "keenable-search",
+        "category": "Development & Testing",
+        "official": true,
+        "access": "No account required"
+      }
+    }
+  }
+}
