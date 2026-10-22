@@ -10,6 +10,7 @@ use tokio::{net::TcpListener, process::Command, task::JoinHandle};
 struct Request {
     start: i64,
     first: Option<i64>,
+    reasoning_seen: bool,
 }
 
 #[derive(Default)]
@@ -76,7 +77,7 @@ impl Metrics {
             if !(200..300).contains(&status) { return None }
             let duration = integer("duration_ms")?;
             if duration < 0 { return None }
-            thread.request = Some(Request { start: timestamp.checked_sub(duration)?, first: None });
+            thread.request = Some(Request { start: timestamp.checked_sub(duration)?, first: None, reasoning_seen: false });
             return None;
         }
         let kind = string("event.kind")?;
@@ -90,11 +91,15 @@ impl Metrics {
             "response.custom_tool_call_input.delta");
         if is_delta && let Some(request) = thread.request.as_mut() {
             request.first.get_or_insert(timestamp);
+            request.reasoning_seen |= kind.starts_with("response.reasoning_");
         }
         if kind != "response.completed" { return None }
         // Codex logs response.completed twice. Only the second record carries usage.
         let output = u64::try_from(integer("output_token_count")?).ok()?;
         let request = thread.request.take()?;
+        // A provider may count hidden reasoning without streaming it. Starting the
+        // clock at visible text in that case would recreate the inflated-rate bug.
+        if integer("reasoning_token_count").is_some_and(|n| n > 0) && !request.reasoning_seen { return None }
         let first = request.first?;
         let decode = timestamp.checked_sub(first)?;
         let ttft = first.checked_sub(request.start)?;
@@ -213,7 +218,7 @@ mod tests {
         m.record(&event("codex.sse_event", first, &[("event.kind",json!(kind))]));
         // The raw completion has no usage and must not consume the request.
         assert!(m.record(&event("codex.sse_event", end, &[("event.kind",json!("response.completed"))])).is_none());
-        m.record(&event("codex.sse_event", end, &[("event.kind",json!("response.completed")),("output_token_count",json!(output)),("reasoning_token_count",json!(output/2))])).unwrap()
+        m.record(&event("codex.sse_event", end, &[("event.kind",json!("response.completed")),("output_token_count",json!(output)),("reasoning_token_count",json!(if kind.contains("reasoning") { output/2 } else { 0 }))])).unwrap()
     }
     #[test]
     fn reasoning_and_tools_are_weighted_without_double_counting_or_tool_wait() {
@@ -235,6 +240,14 @@ mod tests {
         m.record(&event("codex.api_request", 2000, &[("endpoint",json!("/responses")),("duration_ms",json!(500)),("http.response.status_code",json!(200))]));
         assert!(m.record(&event("codex.sse_event", 5000, &[("event.kind",json!("response.completed")),("output_token_count",json!(10))])).is_none());
     }
+    #[test]
+    fn reported_hidden_reasoning_requires_an_observed_reasoning_stream() {
+        let mut m = state();
+        m.record(&event("codex.api_request", 2000, &[("endpoint",json!("/responses")),("duration_ms",json!(500)),("http.response.status_code",json!(200))]));
+        m.record(&event("codex.sse_event", 17000, &[("event.kind",json!("response.output_text.delta"))]));
+        assert!(m.record(&event("codex.sse_event", 19000, &[("event.kind",json!("response.completed")),("output_token_count",json!(1600)),("reasoning_token_count",json!(1200))])).is_none());
+    }
+
     #[test]
     fn recorded_codex_0163_wire_metadata() {
         let value: Value = serde_json::from_str(include_str!("../tests/fixtures/request-metrics.json")).unwrap();
