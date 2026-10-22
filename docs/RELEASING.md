@@ -31,4 +31,6 @@ gh release create v0.1.0 --verify-tag --draft --title 'Codex Lemma v0.1.0' --not
 gh release edit v0.1.0 --draft=false
 ```
 
+When publishing local assets, GitHub may create the tag when the draft becomes public and trigger the tag-based Release Windows workflow. Cancel that duplicate run for the same tag from Actions after publishing; the local assets are already uploaded and verified. Otherwise its create step will stop because the release exists. The automatic tag-push route needs no manual upload or cancellation.
+
 Choose one publishing route. Verify the release page, asset sizes, checksum, and tag-to-commit relationship afterward. GitHub automatically adds source archives; do not upload the development workspace as an archive.
