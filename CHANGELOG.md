@@ -4,6 +4,7 @@
 
 Initial Windows x64 release, based on Codexia v0.58.0.
 
+- Removed the fork-specific Auto mode. Fresh installs default to Ask for approval; legacy Auto mode migrates to it while preserving other supported choices.
 - Focused Codex workspace with custom Responses-compatible model providers, local model catalog, and composer model selection.
 - Project files, editor, terminal, Git diffs, MCP connectors, skills, automation, and local usage statistics.
 - Lemma branding, compact window controls, English/Chinese UI, and a neutral gray stop button.

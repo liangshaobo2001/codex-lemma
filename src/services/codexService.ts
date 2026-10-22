@@ -413,8 +413,7 @@ export const codexService = {
       const userInputs = buildUserInputs(input, images);
 
       const { model, reasoningEffort, accessMode, webSearchRequest } = useConfigStore.getState();
-      const { sandbox, approvalPolicy, approvalsReviewer, networkAccess } =
-        ACCESS_MODES[accessMode];
+      const { sandbox, approvalPolicy, approvalsReviewer } = ACCESS_MODES[accessMode];
 
       const response = await turnStart({
         threadId,
@@ -422,7 +421,7 @@ export const codexService = {
         cwd: resolveThreadCwd(threadId),
         approvalPolicy,
         approvalsReviewer,
-        sandboxPolicy: sandboxModeToPolicy(sandbox, networkAccess ?? webSearchRequest),
+        sandboxPolicy: sandboxModeToPolicy(sandbox, webSearchRequest),
         model: model || null,
         effort: reasoningEffort ?? null,
       });

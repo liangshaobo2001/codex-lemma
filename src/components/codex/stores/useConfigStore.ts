@@ -9,7 +9,7 @@ export type ModeKind = 'default' | 'plan';
 export type ThreadCwdMode = 'local' | 'worktree';
 
 // The composer's permission modes, named after the Codex app's presets.
-export type AccessMode = 'ask' | 'run' | 'auto' | 'full';
+export type AccessMode = 'ask' | 'auto' | 'full';
 
 export interface ConfigStore {
   accessMode: AccessMode;
@@ -40,21 +40,9 @@ export const ACCESS_MODES: Record<
     sandbox: SandboxMode;
     approvalPolicy: AskForApproval;
     approvalsReviewer: ApprovalsReviewer;
-    /** Network inside the sandbox regardless of the web-search toggle. */
-    networkAccess?: boolean;
   }
 > = {
   ask: { sandbox: 'workspace-write', approvalPolicy: 'on-request', approvalsReviewer: 'user' },
-  // Local fork, like Claude Code's auto mode: commands run without asking or an AI review; the sandbox keeps
-  // writes inside the workspace, and an escalation is refused so the model works around it. Measured
-  // 2026-10-22: the reviewer of "Approve for me" is a second Strata conversation that evicted the task's
-  // prompt cache on every command (a 77-minute task spent ~58 min re-reading its prompt).
-  run: {
-    sandbox: 'workspace-write',
-    approvalPolicy: 'never',
-    approvalsReviewer: 'user',
-    networkAccess: true,
-  },
   auto: {
     sandbox: 'workspace-write',
     approvalPolicy: 'on-request',
@@ -71,13 +59,20 @@ const V0_SANDBOX_MODES: Record<string, AccessMode> = {
 };
 
 export function migrateConfigStore(persisted: unknown, version: number): Record<string, unknown> {
-  const state = (persisted ?? {}) as Record<string, unknown>;
+  let state = (persisted ?? {}) as Record<string, unknown>;
   if (version < 1) {
     const { sandbox, approvalPolicy: _approvalPolicy, ...rest } = state;
-    return { ...rest, accessMode: V0_SANDBOX_MODES[String(sandbox)] ?? 'ask' };
+    state = { ...rest, accessMode: V0_SANDBOX_MODES[String(sandbox)] ?? 'ask' };
   }
-  // v2 (local fork): Auto mode became the default, so an existing install switches to it once.
-  if (version < 2) return { ...state, accessMode: 'run' };
+  // v3 removes the fork's no-approval mode. Preserve explicit supported choices;
+  // migrate the removed mode (or invalid values) to user approval, never full access.
+  if (version < 3) {
+    const accessMode = state.accessMode;
+    return {
+      ...state,
+      accessMode: accessMode === 'auto' || accessMode === 'full' ? accessMode : 'ask',
+    };
+  }
   return state;
 }
 
@@ -85,7 +80,7 @@ export const useConfigStore = create<ConfigStore>()(
   persist(
     (set) => ({
       webSearchRequest: false,
-      accessMode: 'run',
+      accessMode: 'ask',
       reasoningEffort: 'medium',
       modelProvider: 'openai',
       model: '',
@@ -134,7 +129,7 @@ export const useConfigStore = create<ConfigStore>()(
     }),
     {
       name: 'codex-config-storage',
-      version: 2,
+      version: 3,
       migrate: (persisted, version) =>
         migrateConfigStore(persisted, version) as unknown as ConfigStore,
     }

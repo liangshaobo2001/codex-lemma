@@ -64,9 +64,6 @@ export const fr = {
     plan: 'Plan',
     planMode: 'Mode plan',
     askApproval: "Demander l'approbation",
-    autoRun: 'Auto mode',
-    autoRunDescription:
-      'Exécute sans demander ; écritures limitées à l’espace de travail, internet autorisé',
     approvalForMe: 'Approuver pour moi',
     fullAccess: 'Accès complet',
     askApprovalDescription:

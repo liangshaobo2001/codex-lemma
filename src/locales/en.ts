@@ -121,12 +121,9 @@ export const en = {
     plan: 'Plan',
     planMode: 'Plan Mode',
     askApproval: 'Ask for approval',
-    autoRun: 'Auto mode',
-    autoRunDescription:
-      'Runs commands without asking; writes stay in the workspace, internet allowed',
     approvalForMe: 'Approve for me',
     fullAccess: 'Full Access',
-    askApprovalDescription: 'Ask before editing outside the workspace or using the internet',
+    askApprovalDescription: 'Runs workspace actions; asks when extra permissions are needed',
     approvalForMeDescription: 'An AI reviewer approves or blocks risky actions',
     fullAccessDescription: 'No sandbox and no approvals',
     goal: 'Goal',

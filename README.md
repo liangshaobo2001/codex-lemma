@@ -33,6 +33,8 @@ For example, if your server exposes Responses at `http://127.0.0.1:8000/v1/respo
 
 Saving a provider records configuration; it does not verify the server. Test a short conversation and a harmless command in a disposable workspace. Model quality, tool support, and API compatibility determine how well agent tasks work. See [provider setup and troubleshooting](docs/PROVIDERS.md).
 
+New installs default to **Ask for approval**: workspace operations use the sandbox, and requests to cross its boundary go to you. The separate **Approve for me** option uses Codex’s AI reviewer. The fork-specific no-approval Auto mode has been removed; existing selections of it migrate to Ask for approval.
+
 ## Configuration and privacy
 
 - By default, Codex uses `%USERPROFILE%\.codex`. Existing Codex configuration, login, and sessions can therefore be shared. Changes in Lemma's model settings can affect other Codex clients using that home.

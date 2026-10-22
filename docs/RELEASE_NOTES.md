@@ -1,5 +1,6 @@
 Initial Windows x64 release of Codex Lemma, a focused open-source Codex GUI based on Codexia v0.58.0.
 
+- Removed the fork-specific Auto mode. Fresh installs default to Ask for approval; legacy Auto mode migrates to it while preserving other supported choices.
 - Custom Responses-compatible model providers and composer model selection.
 - Conversations, approvals, tools, files, Git diffs, terminal, MCP, skills, and scheduled work in one desktop workspace.
 - English/Chinese UI, compact window chrome, neutral gray stop button, and corrected command ordering.

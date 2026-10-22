@@ -1,4 +1,4 @@
-import { AlertTriangle, Bot, Check, Hand, ListChecks, Zap } from 'lucide-react';
+import { AlertTriangle, Bot, Check, Hand, ListChecks } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { type AccessMode, useCodexStore, useConfigStore } from '@/components/codex/stores';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,6 @@ const ACCESS_MODE_OPTIONS: Array<{
 }> = [
   // Local-only build: plain text colour for every mode (user, 2026-10-21); upstream used orange shades.
   { label: 'askApproval', mode: 'ask', icon: Hand, textColor: 'text-foreground' },
-  { label: 'autoRun', mode: 'run', icon: Zap, textColor: 'text-foreground' },
   { label: 'approvalForMe', mode: 'auto', icon: Bot, textColor: 'text-foreground' },
   {
     label: 'fullAccess',
