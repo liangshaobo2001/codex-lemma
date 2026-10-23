@@ -25,6 +25,7 @@ import {
   mergeHistoryEvents,
   useThreadHistory,
 } from '@/components/codex/stores/threadHistory';
+import { useSessionTools } from '@/components/codex/stores/useSessionTools';
 import { useThreadModels } from '@/components/codex/stores/useThreadModels';
 import {
   isWriterConflict,
@@ -56,12 +57,19 @@ import {
   turnSteer,
 } from './apiAdapt';
 import { historyPage } from './apiAdapt/history';
+import { loadToolUsage } from './apiAdapt/toolUsage';
 import {
   confirmThreadModel,
   modelOperation,
   refreshThreadModel,
   requireThreadModel,
 } from './threadModelService';
+
+function requireSavedTools(threadId: string) {
+  const tools = useSessionTools.getState();
+  if (tools.pending[threadId] || tools.errors[threadId])
+    throw new Error('Finish saving or reload the tool selection before sending.');
+}
 
 /** The context window the user set for a model in Settings → Models, as a Codex config override. */
 const contextWindowConfig = (provider: string, model: string): Record<string, number> => {
@@ -275,6 +283,7 @@ export const codexService = {
           }
           const version = useThreadHistory.getState().begin(threadId);
           try {
+            void loadToolUsage(threadId);
             const page = await historyPage(threadId);
             if (useThreadHistory.getState().threads[threadId]?.generation === version)
               useThreadHistory.getState().reset(threadId, page);
@@ -394,6 +403,7 @@ export const codexService = {
         return result;
       });
 
+      void loadToolUsage(threadId);
       const page = await historyPage(threadId);
       if (useThreadHistory.getState().threads[threadId]?.generation !== version) return;
 
@@ -426,6 +436,7 @@ export const codexService = {
       console.warn('[CodexService] thread is owned by another client:', threadId);
       try {
         const { thread } = await readThread({ threadId, includeTurns: false });
+        void loadToolUsage(threadId);
         const page = await historyPage(threadId);
         if (useThreadHistory.getState().threads[threadId]?.generation !== version) return;
         const historicalEvents = historyEvents(page, threadId);
@@ -481,6 +492,7 @@ export const codexService = {
       const userInputs = buildUserInputs(input, images);
 
       const { model, reasoningEffort } = await requireThreadModel(threadId);
+      requireSavedTools(threadId);
       const { accessMode, webSearchRequest } = useConfigStore.getState();
       const { sandbox, approvalPolicy, approvalsReviewer } = ACCESS_MODES[accessMode];
 
@@ -522,6 +534,7 @@ export const codexService = {
       const userInputs = buildUserInputs(input, images);
 
       await requireThreadModel(threadId);
+      requireSavedTools(threadId);
       const response = await turnSteer({
         threadId,
         expectedTurnId,
@@ -540,6 +553,7 @@ export const codexService = {
    */
   async threadQueueAdd(threadId: string, input: string, images: string[] = []) {
     await requireThreadModel(threadId);
+    requireSavedTools(threadId);
     const response = await threadQueueAdd({
       threadId,
       input: buildUserInputs(input, images),
@@ -561,6 +575,7 @@ export const codexService = {
   async threadQueueStart(threadId: string, queuedSubmissionId: string) {
     try {
       await requireThreadModel(threadId);
+      requireSavedTools(threadId);
       const response = await threadQueueStart({ threadId, queuedSubmissionId });
       useCodexStore.setState({ currentTurnId: response.turn.id });
       return response.turn;
@@ -603,6 +618,7 @@ export const codexService = {
   async threadGoalSet(params: ThreadGoalSetParams) {
     try {
       await requireThreadModel(params.threadId);
+      requireSavedTools(params.threadId);
       const response = await threadGoalSet(params);
       return response;
     } catch (error: unknown) {
@@ -613,6 +629,7 @@ export const codexService = {
   async threadCompact(threadId: string) {
     try {
       await requireThreadModel(threadId);
+      requireSavedTools(threadId);
       return await threadCompactStart({ threadId });
     } catch (error: unknown) {
       console.error('[CodexService] threadCompact error:', error);

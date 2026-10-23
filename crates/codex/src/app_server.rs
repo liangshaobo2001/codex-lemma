@@ -16,6 +16,8 @@ use codex_finder::discover_codex_command;
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 pub struct CodexAppServer {
+    pub tool_discovery: crate::tool_discovery::gateway::Gateway,
+    tool_bindings: crate::tool_discovery::binding::Bindings,
     stdin: Mutex<ChildStdin>,
     pending: Mutex<HashMap<u64, oneshot::Sender<Result<Value, String>>>>,
     next_id: AtomicU64,
@@ -24,6 +26,7 @@ pub struct CodexAppServer {
 }
 
 impl CodexAppServer {
+    pub async fn has_running_turn(&self, thread: &str) -> bool { self.tool_bindings.busy(thread).await }
     pub async fn lock_thread_configuration(&self, thread_id: &str) -> tokio::sync::OwnedMutexGuard<()> {
         let lock = {
             let mut locks = self.thread_configuration_locks.lock().await;
@@ -44,7 +47,25 @@ impl CodexAppServer {
             .map_err(|e| e.to_string())
     }
 
-    pub async fn send_request(&self, method: &str, params: Value) -> Result<Value, String> {
+    pub async fn send_request(&self, method: &str, mut params: Value) -> Result<Value, String> {
+        let prepared = if method == "thread/start" { self.tool_bindings.prepare_start(self, &mut params).await? } else { None };
+        if method == "thread/resume" { self.tool_bindings.prepare_resume(self, &mut params).await?; }
+        if method == "turn/start" && let Some(thread) = params["threadId"].as_str() { self.tool_bindings.starting(thread).await; }
+        let result = match self.send_raw_request(method, params.clone()).await {
+            Ok(result) => result,
+            Err(error) => {
+                if method == "turn/start" && let Some(thread) = params["threadId"].as_str() { self.tool_bindings.failed_start(thread).await; }
+                return Err(error);
+            }
+        };
+        if let Some(prepared) = prepared { self.tool_bindings.finish_start(self, prepared, &result).await?; }
+        if method == "thread/unsubscribe" && let Some(thread) = params["threadId"].as_str() { self.tool_bindings.detached(thread).await; self.tool_discovery.closed(thread).await; }
+        if matches!(method, "thread/resume" | "thread/fork") {
+            self.tool_bindings.after_resume(self, method, &params, result).await
+        } else { Ok(result) }
+    }
+
+    pub(crate) async fn send_raw_request(&self, method: &str, params: Value) -> Result<Value, String> {
         let id = self.next_id.fetch_add(1, Ordering::SeqCst);
         let (tx, rx) = oneshot::channel();
         self.pending.lock().await.insert(id, tx);
@@ -122,6 +143,10 @@ fn windows_sandbox_configured() -> bool {
 }
 
 pub async fn connect_codex(event_sink: Arc<dyn EventSink>) -> Result<Arc<CodexAppServer>, String> {
+    connect_codex_with_tool_policy(event_sink, None).await
+}
+
+pub async fn connect_codex_with_tool_policy(event_sink: Arc<dyn EventSink>, tool_policy: Option<std::path::PathBuf>) -> Result<Arc<CodexAppServer>, String> {
     log::info!("Connecting to codex app-server");
     // Prefer the bundled CLI, so the installed app works without a separate Codex install.
     let bundled = bundled_codex();
@@ -179,7 +204,12 @@ pub async fn connect_codex(event_sink: Arc<dyn EventSink>) -> Result<Arc<CodexAp
     let stdout = child.stdout.take().ok_or("missing stdout")?;
     let stderr = child.stderr.take().ok_or("missing stderr")?;
 
+    let tool_discovery = crate::tool_discovery::gateway::Gateway::start_observed(
+        Arc::clone(&event_sink), tool_policy, collector.as_ref().map(|collector| Arc::clone(&collector.metrics))
+    ).await?;
     let client = Arc::new(CodexAppServer {
+        tool_discovery,
+        tool_bindings: crate::tool_discovery::binding::Bindings::default(),
         stdin: Mutex::new(stdin),
         pending: Mutex::new(HashMap::new()),
         next_id: AtomicU64::new(1),
@@ -211,6 +241,9 @@ pub async fn connect_codex(event_sink: Arc<dyn EventSink>) -> Result<Arc<CodexAp
             };
 
             // Classify message type
+            if value["method"] == "thread/closed" && let Some(thread) = value.pointer("/params/threadId").and_then(Value::as_str)
+                && !client_clone.tool_bindings.bound(thread).await { client_clone.tool_discovery.closed(thread).await; }
+            client_clone.tool_bindings.notification(&value).await;
             match classify(&value) {
                 Some(ServerMessage::Response { id, result }) => {
                     let Some(id) = id.as_pending_key() else { continue };

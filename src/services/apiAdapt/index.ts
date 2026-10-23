@@ -18,3 +18,4 @@ export type {
 } from './shared';
 export * from './terminal';
 export * from './threadOps';
+export * from './toolDiscovery';

@@ -537,3 +537,29 @@ pub(crate) async fn api_switch_account_snapshot(
         .map_err(to_error_response)?;
     Ok(Json(result))
 }
+
+pub(crate) async fn api_thread_tools(
+    AxumState(state): AxumState<WebServerState>,
+    Json(params): Json<codexia_codex::tool_discovery::session_tools::Params>,
+) -> Result<Json<Value>, ErrorResponse> {
+    codexia_codex::tool_discovery::session_tools::manage(&require_codex(&state)?.codex,"read",params).await.map(Json).map_err(to_error_response)
+}
+pub(crate) async fn api_thread_tools_select(
+    AxumState(state): AxumState<WebServerState>,
+    Json(params): Json<codexia_codex::tool_discovery::session_tools::Params>,
+) -> Result<Json<Value>, ErrorResponse> {
+    codexia_codex::tool_discovery::session_tools::manage(&require_codex(&state)?.codex,"select",params).await.map(Json).map_err(to_error_response)
+}
+pub(crate) async fn api_thread_tools_recheck(
+    AxumState(state): AxumState<WebServerState>,
+    Json(params): Json<codexia_codex::tool_discovery::session_tools::Params>,
+) -> Result<Json<Value>, ErrorResponse> {
+    codexia_codex::tool_discovery::session_tools::manage(&require_codex(&state)?.codex,"recheck",params).await.map(Json).map_err(to_error_response)
+}
+
+pub(crate) async fn api_thread_tools_usage(
+    AxumState(state): AxumState<WebServerState>,
+    Json(params): Json<codexia_codex::tool_discovery::session_tools::Params>,
+) -> Result<Json<Value>, ErrorResponse> {
+    require_codex(&state)?.codex.tool_discovery.usage(&params.thread_id).await.map(Json).map_err(to_error_response)
+}

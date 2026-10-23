@@ -33,10 +33,49 @@ struct Thread {
 
 #[derive(Default)]
 pub(crate) struct Metrics {
+    managed: HashSet<String>,
     threads: HashMap<String, Thread>,
 }
 
+pub(crate) struct ExternalRequest<'a> {
+    pub thread_id: &'a str, pub start: i64, pub headers: i64, pub first: Option<i64>,
+    pub end: i64, pub usage: &'a Value, pub reasoning_seen: bool,
+}
+
 impl Metrics {
+    pub(crate) fn manage(&mut self, thread: &str, enabled: bool) {
+        if enabled { self.managed.insert(thread.into()); } else { self.managed.remove(thread); }
+    }
+
+    pub(crate) fn external(&mut self, request: ExternalRequest<'_>) -> Option<Value> {
+        let first = request.first?;
+        let output = request.usage["output_tokens"].as_u64()?;
+        let reasoning = request.usage.pointer("/output_tokens_details/reasoning_tokens").and_then(Value::as_u64).unwrap_or(0);
+        let record = |name: &str, at: i64, extras: Vec<(&str, Value)>| -> Option<Value> {
+            let mut attributes = vec![
+                json!({"key":"event.name","value":{"stringValue":name}}),
+                json!({"key":"conversation.id","value":{"stringValue":request.thread_id}}),
+                json!({"key":"event.timestamp","value":{"stringValue":DateTime::<Utc>::from_timestamp_millis(at)?.to_rfc3339()}}),
+            ];
+            attributes.extend(extras.into_iter().map(|(key,value)| json!({"key":key,"value":value})));
+            Some(json!({"attributes":attributes}))
+        };
+        let api = record("codex.api_request",request.headers,vec![
+            ("endpoint",json!({"stringValue":"/responses"})),
+            ("http.response.status_code",json!({"intValue":"200"})),
+            ("duration_ms",json!({"intValue":(request.headers-request.start).to_string()})),
+        ])?;
+        self.record_source(&api,true);
+        let delta = record("codex.sse_event",first,vec![("event.kind",json!({"stringValue":if request.reasoning_seen {"response.reasoning_text.delta"} else {"response.output_text.delta"}}))])?;
+        self.record_source(&delta,true);
+        let completed = record("codex.sse_event",request.end,vec![
+            ("event.kind",json!({"stringValue":"response.completed"})),
+            ("output_token_count",json!({"intValue":output.to_string()})),
+            ("reasoning_token_count",json!({"intValue":reasoning.to_string()})),
+        ])?;
+        self.record_source(&completed,true)
+    }
+
     pub(crate) fn notification(&mut self, raw: &Value) {
         let method = raw["method"].as_str().unwrap_or_default();
         let p = &raw["params"];
@@ -59,6 +98,10 @@ impl Metrics {
     }
 
     fn record(&mut self, record: &Value) -> Option<Value> {
+        self.record_source(record,false)
+    }
+
+    fn record_source(&mut self, record: &Value, external: bool) -> Option<Value> {
         let attrs = record["attributes"].as_array()?;
         // Whitelist access only: prompts, arguments, tools, headers and identifiers from
         // provider metadata are neither retained nor emitted.
@@ -68,6 +111,7 @@ impl Metrics {
         let name = string("event.name")?;
         if name != "codex.api_request" && name != "codex.sse_event" { return None }
         let id = string("conversation.id")?;
+        if !external && self.managed.contains(id) { return None; }
         let timestamp = DateTime::parse_from_rfc3339(string("event.timestamp")?).ok()?.timestamp_millis();
         let thread = self.threads.get_mut(id)?;
         if name == "codex.api_request" {
@@ -297,4 +341,19 @@ mod tests {
         assert!(custom_exporter(&toml::from_str("[profiles.work.otel]\nexporter={otlp-http={endpoint='http://example.test'}}").unwrap()));
         assert!(!custom_exporter(&toml::from_str("[otel]\nexporter='none'").unwrap()));
     }
+    #[test]
+    fn bridge_timing_uses_actual_requests_without_double_counting_native_otlp() {
+        let mut metrics=Metrics::default();
+        metrics.threads.insert("thread".into(),Thread{turns:VecDeque::from([Turn{id:"turn".into(),start:0,..Default::default()}]),request:None});
+        metrics.manage("thread",true);
+        let usage=json!({"output_tokens":80,"output_tokens_details":{"reasoning_tokens":0}});
+        let update=metrics.external(ExternalRequest{thread_id:"thread",start:1000,headers:1100,first:Some(1200),end:2200,usage:&usage,reasoning_seen:false}).unwrap();
+        assert_eq!(update["tokensPerSec"],80.0);assert_eq!(update["requests"],1);
+        let fixture:Value=serde_json::from_str(include_str!("../tests/fixtures/request-metrics.json")).unwrap();
+        assert!(metrics.batch(&fixture).is_empty());assert_eq!(metrics.threads["thread"].turns[0].requests,1);
+        let hidden=json!({"output_tokens":80,"output_tokens_details":{"reasoning_tokens":30}});
+        assert!(metrics.external(ExternalRequest{thread_id:"thread",start:3000,headers:3100,first:Some(3200),end:4200,usage:&hidden,reasoning_seen:false}).is_none());
+        metrics.manage("thread",false);assert!(!metrics.managed.contains("thread"));
+    }
+
 }

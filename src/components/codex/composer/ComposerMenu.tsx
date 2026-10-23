@@ -7,6 +7,7 @@ import {
   Image as ImageIcon,
   PlusIcon,
   Target,
+  Wrench,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { type MentionItem, mentionsWithIcon, useMentionItems } from './mentions';
+import { ToolSelectionDialog } from './ToolSelectionDialog';
 
 interface SelectFilesMenuItemProps {
   onFilesSelected?: (paths: string[]) => void;
@@ -136,6 +138,7 @@ export function ComposerMenu({
   const { goalEnabled, setGoalEnabled } = useCodexStore();
   const { t } = useTranslation('composer');
   const [openState, setOpenState] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const { items } = useMentionItems();
   const mentionItems = mentionsWithIcon(items);
 
@@ -164,82 +167,96 @@ export function ComposerMenu({
   };
 
   return (
-    <Popover open={openState} onOpenChange={setOpenState}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <PlusIcon className="w-4 h-4" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-48 max-h-[45vh] overflow-y-auto p-1" align="start">
-        <div className="flex flex-col gap-1">
-          <Button
-            variant="ghost"
-            className={cn(
-              'justify-start gap-2 px-2 hover:bg-blue-500 hover:text-white transition-colors',
-              webSearchRequest && 'bg-blue-100 text-blue-900'
-            )}
-            onClick={() => {
-              setWebSearch(!webSearchRequest);
-              setOpenState(false);
-            }}
-          >
-            <Globe className="w-4 h-4" />
-            <span className="flex-1 text-left">{t('chat:composer.menu.webSearch')}</span>
-            {webSearchRequest && <Check className="w-4 h-4" />}
+    <>
+      <Popover open={openState} onOpenChange={setOpenState}>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="icon">
+            <PlusIcon className="w-4 h-4" />
           </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-48 max-h-[45vh] overflow-y-auto p-1" align="start">
+          <div className="flex flex-col gap-1">
+            <Button
+              variant="ghost"
+              className={cn(
+                'justify-start gap-2 px-2 hover:bg-blue-500 hover:text-white transition-colors',
+                webSearchRequest && 'bg-blue-100 text-blue-900'
+              )}
+              onClick={() => {
+                setWebSearch(!webSearchRequest);
+                setOpenState(false);
+              }}
+            >
+              <Globe className="w-4 h-4" />
+              <span className="flex-1 text-left">{t('chat:composer.menu.webSearch')}</span>
+              {webSearchRequest && <Check className="w-4 h-4" />}
+            </Button>
 
-          <Button
-            variant="ghost"
-            className="justify-start gap-2 px-2 hover:bg-blue-500 hover:text-white transition-colors"
-            onClick={handleSelectImage}
-          >
-            <ImageIcon className="w-4 h-4" />
-            <span>{t('chat:composer.menu.addImages')}</span>
-          </Button>
-          <SelectFilesMenuItem
-            onFilesSelected={onFilesSelected}
-            onAfterSelect={() => setOpenState(false)}
-          />
-          {/* Screenshot button */}
-          <ScreenshotPopover
-            onScreenshotTaken={(path) => {
-              if (onImagesSelected) {
-                onImagesSelected([path]);
-              }
-              setOpenState(false);
-            }}
-          />
-          <Button
-            variant="ghost"
-            className={cn(
-              'justify-start gap-2 px-2 hover:bg-blue-500 hover:text-white transition-colors',
-              goalEnabled && 'bg-blue-50 text-blue-700'
+            <Button
+              variant="ghost"
+              className="justify-start gap-2 px-2 hover:bg-blue-500 hover:text-white transition-colors"
+              onClick={handleSelectImage}
+            >
+              <ImageIcon className="w-4 h-4" />
+              <span>{t('chat:composer.menu.addImages')}</span>
+            </Button>
+            <SelectFilesMenuItem
+              onFilesSelected={onFilesSelected}
+              onAfterSelect={() => setOpenState(false)}
+            />
+            <Button
+              variant="ghost"
+              className="justify-start gap-2 px-2 hover:bg-muted"
+              onClick={() => {
+                setOpenState(false);
+                setToolsOpen(true);
+              }}
+            >
+              <Wrench className="w-4 h-4" />
+              <span>{t('chat:tools.title')}</span>
+            </Button>
+            {/* Screenshot button */}
+            <ScreenshotPopover
+              onScreenshotTaken={(path) => {
+                if (onImagesSelected) {
+                  onImagesSelected([path]);
+                }
+                setOpenState(false);
+              }}
+            />
+            <Button
+              variant="ghost"
+              className={cn(
+                'justify-start gap-2 px-2 hover:bg-blue-500 hover:text-white transition-colors',
+                goalEnabled && 'bg-blue-50 text-blue-700'
+              )}
+              onClick={() => {
+                setGoalEnabled(!goalEnabled);
+                setOpenState(false);
+              }}
+            >
+              <Target className="w-4 h-4" />
+              <span className="flex-1 text-left">{t('goal')}</span>
+            </Button>
+            {mentionItems.length > 0 && (
+              <>
+                <Separator className="my-1" />
+                {mentionItems.map((item) => (
+                  <MentionMenuItem
+                    key={item.key}
+                    item={item}
+                    onInsert={(text) => {
+                      onInsertMention?.(text);
+                      setOpenState(false);
+                    }}
+                  />
+                ))}
+              </>
             )}
-            onClick={() => {
-              setGoalEnabled(!goalEnabled);
-              setOpenState(false);
-            }}
-          >
-            <Target className="w-4 h-4" />
-            <span className="flex-1 text-left">{t('goal')}</span>
-          </Button>
-          {mentionItems.length > 0 && (
-            <>
-              <Separator className="my-1" />
-              {mentionItems.map((item) => (
-                <MentionMenuItem
-                  key={item.key}
-                  item={item}
-                  onInsert={(text) => {
-                    onInsertMention?.(text);
-                    setOpenState(false);
-                  }}
-                />
-              ))}
-            </>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
+          </div>
+        </PopoverContent>
+      </Popover>
+      <ToolSelectionDialog open={toolsOpen} onOpenChange={setToolsOpen} />
+    </>
   );
 }

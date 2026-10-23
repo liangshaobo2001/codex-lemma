@@ -1,3 +1,4 @@
+import { useSessionTools } from '../stores/useSessionTools';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { forwardRef, useImperativeHandle } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -146,5 +147,15 @@ describe('Composer model confirmation guard',()=>{
     expect(screen.getByRole('alert').textContent).toContain('Provider switch refused');
     const send=screen.getByRole('button',{name:'Send message'});fireEvent.submit(send.closest('form')!);
     expect(turnStart).not.toHaveBeenCalled();expect(useInputStore.getState().inputValue).toBe('preserve draft');
+  });
+});
+
+describe('Composer tool selection confirmation',()=>{
+  beforeEach(()=>{vi.clearAllMocks();setThread(false);useInputStore.setState({inputValue:'keep this draft'});useThreadModels.setState({confirmed:{t1:{modelProvider:'fixture',model:'model',reasoningEffort:'none'}},pending:{},errors:{}});useSessionTools.setState({pending:{},errors:{},snapshots:{}});});
+  it.each(['pending','failed'])('blocks a %s tool selection and preserves the draft',(kind)=>{
+    if(kind==='pending')useSessionTools.getState().begin('t1');else useSessionTools.getState().fail('t1','Selection not saved');
+    render(<Composer/>);const send=screen.getByRole('button',{name:'Send message'});
+    expect(send.hasAttribute('disabled')).toBe(true);fireEvent.submit(send.closest('form')!);
+    expect(turnStart).not.toHaveBeenCalled();expect(useInputStore.getState().inputValue).toBe('keep this draft');
   });
 });

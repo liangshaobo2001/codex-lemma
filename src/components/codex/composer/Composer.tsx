@@ -22,6 +22,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useInputStore } from '@/stores/useInputStore';
 import { useWorkspaceStore } from '@/stores/useWorkspaceStore';
 import { useComposerModel } from '../hooks/useComposerModel';
+import { useSessionTools } from '../stores/useSessionTools';
 import { AccessModePopover } from './AccessModePopover';
 import { ComposerMenu } from './ComposerMenu';
 import { ComposerToolbarProvider } from './ComposerToolbarContext';
@@ -61,7 +62,18 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
   const { t } = useTranslation('chat');
   const widgets = useSettingsStore((s) => s.composerWidgets);
   const modelState = useComposerModel();
-  const modelBlocked = modelState.pending || Boolean(modelState.error) || modelState.unavailable;
+  const toolsPending = useSessionTools((s) =>
+    Boolean(modelState.threadId && s.pending[modelState.threadId])
+  );
+  const toolsError = useSessionTools((s) =>
+    modelState.threadId ? s.errors[modelState.threadId] : undefined
+  );
+  const modelBlocked =
+    modelState.pending ||
+    Boolean(modelState.error) ||
+    modelState.unavailable ||
+    toolsPending ||
+    Boolean(toolsError);
   const [images, setImages] = useState<string[]>([]);
   const [slashDialog, setSlashDialog] = useState<SlashDialog | null>(null);
   const { inputValue, setInputValue, appendFileLinks } = useInputStore();
@@ -263,6 +275,11 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
         />
 
         <ModelStatus />
+        {toolsError && (
+          <p role="alert" className="px-3 py-1 text-xs text-foreground">
+            {t('tools.saveFailed')}
+          </p>
+        )}
         <QueuedMessages threadId={currentThreadId} running={threadStatus?.type === 'active'} />
 
         <div className="border rounded-xl bg-background shadow-sm focus-within:ring-1 focus-within:ring-ring transition-all overflow-hidden">

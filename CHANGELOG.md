@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [0.1.9] - 2026-10-23
+
+- Detect native tool-search compatibility for custom Responses providers with a synthetic discovery/call/result probe; use ordinary function discovery when needed, then fall back to this chat's selected tools. Core CLI tools remain available.
+- Add Tools to the composer Plus menu, with chat-specific fallback selection, compatibility status and retry. Keep installed plugins, shared Codex configuration, sandbox and approvals unchanged.
+- Defer connected tool schemas instead of preloading the entire registry for unknown models. Preserve canonical call identities, streaming, cancellation, restored history and independent child conversations.
+- Keep hidden discovery usage separate from context occupancy; include its input/cache totals in session statistics and measure actual provider request streams without double counting.
+
 ## [0.1.8] - 2026-10-23
 
 - Keep a late cached-session refresh from selecting the wrong chat; derive running-turn state from the latest events after refresh.

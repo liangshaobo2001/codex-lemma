@@ -27,7 +27,7 @@ fn verify(value: &Value, params: &ModelParams) -> Result<(), String> {
     Ok(())
 }
 
-fn resume_params(old: &Value, params: &ModelParams) -> Result<Value, String> {
+pub(crate) fn resume_params(old: &Value, params: &ModelParams) -> Result<Value, String> {
     let mut result = json!({"threadId":params.thread_id,"modelProvider":params.model_provider,
         "model":params.model,"excludeTurns":true,"serviceTier":null});
     if effective(old,"modelProvider") == Some(params.model_provider.as_str())

@@ -1,6 +1,7 @@
 import { Database, Gauge } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useCodexStore } from '@/components/codex/stores/useCodexStore';
+import { useToolUsage } from '@/services/apiAdapt/toolUsage';
 import { useSettingsStore } from '@/stores/settings';
 import { formatCacheHit } from './cacheHit';
 
@@ -24,7 +25,12 @@ export function ThroughputWidget() {
   const tps =
     currentThreadId && reading?.tokensPerSec != null ? Math.round(reading.tokensPerSec) : null;
   const ttft = reading?.ttftMs != null ? (reading.ttftMs / 1000).toFixed(1) : '—';
-  const hit = formatCacheHit(usage?.cachedInputTokens, usage?.inputTokens);
+  const extra = useToolUsage((state) =>
+    currentThreadId ? state.usage[currentThreadId] : undefined
+  );
+  const cached = usage ? usage.cachedInputTokens + (extra?.cachedInputTokens ?? 0) : undefined;
+  const input = usage ? usage.inputTokens + (extra?.inputTokens ?? 0) : undefined;
+  const hit = extra?.complete === false ? null : formatCacheHit(cached, input);
 
   if (!showSpeed && !showCache) return null;
 
@@ -49,8 +55,8 @@ export function ThroughputWidget() {
             hit === null
               ? t('widgets.cacheUnavailable')
               : t('widgets.cacheTitle', {
-                  cached: usage?.cachedInputTokens,
-                  input: usage?.inputTokens,
+                  cached,
+                  input,
                 })
           }
         >

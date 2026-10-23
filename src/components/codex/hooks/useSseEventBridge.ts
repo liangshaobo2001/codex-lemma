@@ -9,6 +9,7 @@ import type {
 import { useCodexStore } from '@/components/codex/stores/useCodexStore';
 import { isDesktopTauri } from '@/hooks/runtime';
 import { openEventStream } from '@/lib/eventStream';
+import { useToolUsage } from '@/services/apiAdapt/toolUsage';
 
 interface SseEventHandlers {
   enabled: boolean;
@@ -86,6 +87,10 @@ export function useSseEventBridge({
         }
         if (envelope.event === 'codex/permissions-request') {
           handlersRef.current.onPermissionsRequest(envelope.payload as PermissionsRequest);
+          return;
+        }
+        if (envelope.event === 'codex:tool-usage') {
+          useToolUsage.getState().accept(envelope.payload);
           return;
         }
         if (envelope.event === 'codex:request-metrics') {

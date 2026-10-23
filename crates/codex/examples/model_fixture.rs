@@ -1,6 +1,6 @@
 //! Manual regression using a marked synthetic home and localhost providers only.
 use std::sync::Arc;
-use codexia_codex::{connect_codex, thread_model};
+use codexia_codex::{app_server::connect_codex_with_tool_policy, thread_model};
 use codexia_shared::event_sink::EventSink;
 use serde_json::{Value, json};
 struct Sink(tokio::sync::mpsc::UnboundedSender<Value>);
@@ -21,7 +21,7 @@ async fn main() -> Result<(),String> {
     let home=std::env::var("CODEX_HOME").map_err(|_|"Synthetic CODEX_HOME required")?;
     if !std::path::Path::new(&home).join(".lemma-synthetic-history").is_file() { return Err("Unmarked home refused".into()); }
     let (tx,mut events)=tokio::sync::mpsc::unbounded_channel();
-    let codex=connect_codex(Arc::new(Sink(tx))).await?;
+    let codex=connect_codex_with_tool_policy(Arc::new(Sink(tx)),Some(std::path::Path::new(&home).join("tool-policies.json"))).await?;
     codex.send_request("initialize",json!({"clientInfo":{"name":"lemma_model_regression","version":"0"},"capabilities":{"experimentalApi":true}})).await?;
     codex.send_notification("initialized",None).await?;
     let sandbox=std::env::var("LEMMA_FIXTURE_SANDBOX").unwrap_or_else(|_|"read-only".into());
