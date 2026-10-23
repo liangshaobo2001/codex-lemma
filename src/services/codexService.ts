@@ -243,10 +243,12 @@ export const codexService = {
       if (state.activeThreadIds.includes(threadId) && state.events[threadId]) {
         set({ currentThreadId: threadId });
         await refreshThreadModel(threadId);
+        const liveState = useCodexStore.getState();
+        if (liveState.currentThreadId !== threadId) return;
         // Live thread — derive the active turn id from streaming events so the
         // Stop button works correctly when a turn is in progress.
-        const threadEvents = state.events[threadId] ?? [];
-        const timing = state.turnTimingMap[threadId];
+        const threadEvents = liveState.events[threadId] ?? [];
+        const timing = liveState.turnTimingMap[threadId];
         let activeTurnId: string | null = timing?.status === 'inProgress' ? timing.turnId : null;
         for (let i = threadEvents.length - 1; !timing && activeTurnId === null && i >= 0; i--) {
           const e = threadEvents[i];
@@ -266,13 +268,12 @@ export const codexService = {
         if (!useThreadHistory.getState().threads[threadId]) {
           if (
             threadEvents.length === 0 &&
-            !state.threads.find((t) => t.id === threadId)?.preview.trim()
+            !liveState.threads.find((t) => t.id === threadId)?.preview.trim()
           ) {
             useThreadHistory.getState().reset(threadId, { entries: [], nextCursor: null });
             return;
           }
           const version = useThreadHistory.getState().begin(threadId);
-          useThreadModels.getState().begin(threadId);
           try {
             const page = await historyPage(threadId);
             if (useThreadHistory.getState().threads[threadId]?.generation === version)

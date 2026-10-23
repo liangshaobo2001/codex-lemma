@@ -2,7 +2,13 @@
 
 ## Unreleased
 
-## [0.1.7] - 2026-10-23
+## [0.1.8] - 2026-10-23
+
+- Keep a late cached-session refresh from selecting the wrong chat; derive running-turn state from the latest events after refresh.
+- Keep model readiness separate from history-page loading, including evicted pages and retryable history errors.
+- Includes the model/provider switching and inherited reasoning fixes from withheld 0.1.6/0.1.7 candidates.
+
+## [0.1.7] - Unreleased candidate
 
 - Preserve inherited reasoning effort when resuming a Desktop/CLI session; an unset value is distinct from explicit `none`, and the composer shows Default.
 - Includes the model-switching changes from the withheld 0.1.6 candidate.

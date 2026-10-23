@@ -1,5 +1,6 @@
-Codex Lemma v0.1.7 fixes model switching and session model display.
+Codex Lemma v0.1.8 fixes model switching and session model display.
 
+- Keep the selected chat stable when cached-session refreshes finish out of order. Loading or retrying evicted history pages no longer leaves the model stuck in an updating state.
 - Preserve inherited reasoning settings in Desktop/CLI sessions. An unset effort remains model-default rather than being converted to explicit none; the UI shows Default.
 - Switch providers in an idle chat without creating another conversation. Verify the CLI's actual provider and model before updating the picker; preserve the workspace, permissions and stored history.
 - Show each session's confirmed model and reasoning effort, including chats opened in Codex Desktop/CLI. Prefer effective response fields over stale or absent nested metadata, and refresh model state when returning to a cached chat.

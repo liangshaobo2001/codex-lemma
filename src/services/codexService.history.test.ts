@@ -80,3 +80,36 @@ describe('bounded history opens', () => {
   });
 
 });
+
+describe('cached chat model refresh races',()=>{
+ const ready=(id:string)=>({...response(id),model:id+'-model',modelProvider:'fixture',reasoningEffort:null});
+ beforeEach(()=>{
+  vi.resetAllMocks();useCodexStore.setState({threads:[thread('a'),thread('b')],currentThreadId:'a',currentTurnId:null,activeThreadIds:['a','b'],events:{a:[],b:[]},turnTimingMap:{},threadStatusMap:{}});
+  useThreadModels.setState({confirmed:{},pending:{},errors:{}});useThreadHistory.setState({threads:{}});
+  vi.mocked(historyPage).mockResolvedValue(page);vi.mocked(threadResume).mockImplementation(async p=>ready(p.threadId));
+ });
+ it('does not let a slow cached-chat refresh steal a newer selection',async()=>{
+  let resolve!:(v:ThreadResumeResponse)=>void;
+  useThreadHistory.getState().reset('a',page);useThreadHistory.getState().reset('b',page);
+  vi.mocked(threadResume).mockImplementation(async p=>p.threadId==='a'?new Promise(r=>{resolve=r}):ready('b'));
+  const a=codexService.setCurrentThread('a');await vi.waitFor(()=>expect(threadResume).toHaveBeenCalledTimes(1));
+  await codexService.setCurrentThread('b');resolve(ready('a'));await a;
+  expect(useCodexStore.getState().currentThreadId).toBe('b');
+ });
+ it('finishes model loading when the history-page cache was evicted',async()=>{
+  await codexService.setCurrentThread('a');
+  expect(useThreadModels.getState().pending.a).toBe(false);expect(useThreadModels.getState().confirmed.a.model).toBe('a-model');
+ });
+ it('does not leave the model loading when history loading fails',async()=>{
+  vi.mocked(historyPage).mockRejectedValue(new Error('History temporarily unavailable'));
+  await codexService.setCurrentThread('a');
+  expect(useThreadModels.getState().pending.a).toBe(false);expect(useThreadHistory.getState().threads.a.error).toContain('History temporarily unavailable');
+ });
+ it('reads fresh running-turn state after the metadata refresh',async()=>{
+  let resolve!:(v:ThreadResumeResponse)=>void;
+  vi.mocked(threadResume).mockReturnValue(new Promise(r=>{resolve=r}));useThreadHistory.getState().reset('a',page);
+  const opening=codexService.setCurrentThread('a');await vi.waitFor(()=>expect(threadResume).toHaveBeenCalled());
+  useCodexStore.setState({turnTimingMap:{a:{turnId:'new-turn',startedAtMs:1,durationMs:null,status:'inProgress'}}});
+  resolve(ready('a'));await opening;expect(useCodexStore.getState().currentTurnId).toBe('new-turn');
+ });
+});
