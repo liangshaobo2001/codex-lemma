@@ -8,8 +8,64 @@ pub fn failure(message:&str)->Value {
     serde_json::json!({"type":"response.failed","response":{"id":"lemma-tool-adapter-error","status":"failed","output":[],"error":{"code":"tool_discovery_error","message":message}}})
 }
 
+
+// Some Responses-compatible servers omit output_index while retaining stable item IDs.
+// Repair those events per response; never merge distinct items or overwrite an explicit index.
 #[derive(Default)]
-pub struct Decoder { buffer:Vec<u8>, total:usize }
+struct OutputIndices {
+    ids:BTreeMap<String,u64>, calls:BTreeMap<String,u64>,
+    occupied:BTreeMap<u64,(Option<String>,Option<String>)>,
+}
+impl OutputIndices {
+    fn explicit(event:&Value)->Result<Option<u64>,String> {
+        match event.get("output_index").filter(|value|!value.is_null()) {
+            Some(value)=>value.as_u64().map(Some).ok_or("Output index must be a non-negative integer.".into()),
+            None=>Ok(None),
+        }
+    }
+    fn known(&self,id:Option<&str>,call:Option<&str>)->Result<Option<u64>,String> {
+        let item=id.and_then(|id|self.ids.get(id)).copied();
+        let call=call.and_then(|id|self.calls.get(id)).copied();
+        if item.zip(call).is_some_and(|(a,b)|a!=b) {return Err("Output item identities disagree about their index.".into());}
+        Ok(item.or(call))
+    }
+    fn normalize(&mut self,event:&mut Value)->Result<(),String> {
+        let kind=event["type"].as_str().unwrap_or("");
+        if matches!(kind,"response.output_item.added"|"response.output_item.done") {
+            let item=event["item"].as_object().ok_or("Output event has no item.")?;
+            let id=item.get("id").and_then(Value::as_str).filter(|id|!id.is_empty()).map(str::to_string);
+            let call=item.get("call_id").and_then(Value::as_str).filter(|id|!id.is_empty()).map(str::to_string);
+            let explicit=Self::explicit(event)?;
+            let known=self.known(id.as_deref(),call.as_deref())?;
+            if explicit.zip(known).is_some_and(|(a,b)|a!=b) {return Err("Provider changed an output item's index.".into());}
+            let index=match explicit.or(known) {
+                Some(index)=>index,
+                None=>{
+                    if id.is_none()&&call.is_none() {return Err("Output event has neither an index nor a stable item identity.".into());}
+                    let mut index=0;while self.occupied.contains_key(&index) {index+=1;}index
+                },
+            };
+            let occupied=self.occupied.entry(index).or_default();
+            if occupied.0.as_ref().zip(id.as_ref()).is_some_and(|(a,b)|a!=b)
+                ||occupied.1.as_ref().zip(call.as_ref()).is_some_and(|(a,b)|a!=b) {
+                return Err("Provider reused an output index for different items.".into());
+            }
+            if let Some(id)=id {self.ids.insert(id.clone(),index);occupied.0=Some(id);}
+            if let Some(call)=call {self.calls.insert(call.clone(),index);occupied.1=Some(call);}
+            event["output_index"]=Value::from(index);
+        } else if kind.starts_with("response.") {
+            let id=event["item_id"].as_str();let call=event["call_id"].as_str();
+            if let Some(index)=self.known(id,call)? {
+                if Self::explicit(event)?.is_some_and(|explicit|explicit!=index) {return Err("Output delta index disagrees with its item identity.".into());}
+                event["output_index"]=Value::from(index);
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Default)]
+pub struct Decoder { buffer:Vec<u8>, total:usize, indices:OutputIndices }
 impl Decoder {
     pub fn push(&mut self, bytes:&[u8]) -> Result<Vec<Value>,String> {
         self.total=self.total.checked_add(bytes.len()).ok_or("Response is too large.")?;
@@ -25,8 +81,9 @@ impl Decoder {
             let data=frame.lines().filter_map(|line|line.strip_prefix("data:").map(|v|v.strip_prefix(' ').unwrap_or(v)))
                 .collect::<Vec<_>>().join("\n");
             if !data.is_empty() && data!="[DONE]" {
-                let value:Value=serde_json::from_str(&data).map_err(|_|"Invalid Responses event JSON.")?;
+                let mut value:Value=serde_json::from_str(&data).map_err(|_|"Invalid Responses event JSON.")?;
                 if !value["type"].is_string() { return Err("Responses event has no type.".into()); }
+                self.indices.normalize(&mut value)?;
                 events.push(value);
             }
             self.buffer.drain(..end+width);
@@ -147,5 +204,59 @@ mod tests {
         assert!(capture.observe(&json!({"type":"response.output_item.added","output_index":1,"item":item})).is_err());
         let mut changed=item;changed["arguments"]=json!("{\"changed\":true}");
         assert!(capture.observe(&json!({"type":"response.completed","response":{"output":[changed]}})).is_err());
+    }
+
+    fn decode_events(events:&[Value])->Result<Vec<Value>,String> {
+        let wire=events.iter().map(|event|format!("data: {event}\n\n")).collect::<String>();
+        Decoder::default().push(wire.as_bytes())
+    }
+    #[test]
+    fn recorded_bonsai_stream_without_indices_completes_with_stable_message_identity() {
+        let wire=include_bytes!("../../tests/fixtures/bonsai-responses-missing-indices.sse");
+        for width in [1,7,64,wire.len()] {
+            let mut decoder=Decoder::default();let mut capture=ResponseCapture::default();let mut deltas=0;
+            for chunk in wire.chunks(width) {
+                for event in decoder.push(chunk).unwrap() {
+                    if event["type"]=="response.output_text.delta" {assert_eq!(event["output_index"],0);deltas+=1;}
+                    capture.observe(&event).unwrap();
+                }
+            }
+            decoder.finish().unwrap();let response=capture.finish().unwrap();
+            assert_eq!(response["status"],"completed");assert_eq!(response["output"][0]["content"][0]["text"],"OK");assert_eq!(deltas,1);
+        }
+    }
+    #[test]
+    fn missing_indices_keep_interleaved_tool_arguments_and_reverse_completions_separate() {
+        let a=json!({"id":"a","type":"function_call","call_id":"call-a","name":"one","arguments":"{}"});
+        let b=json!({"id":"b","type":"function_call","call_id":"call-b","name":"two","arguments":"{}"});
+        let events=decode_events(&[
+            json!({"type":"response.output_item.added","item":a}),
+            json!({"type":"response.output_item.added","item":b}),
+            json!({"type":"response.function_call_arguments.delta","item_id":"b","delta":"{}"}),
+            json!({"type":"response.function_call_arguments.delta","call_id":"call-a","delta":"{}"}),
+            json!({"type":"response.output_item.done","item":b}),
+            json!({"type":"response.output_item.done","item":a}),
+            json!({"type":"response.completed","response":{"status":"completed","output":[a,b]}}),
+        ]).unwrap();
+        for (event,index) in events.iter().zip([0,1,1,0,1,0]) {assert_eq!(event["output_index"],index);}
+        assert_eq!(events[0]["item"]["call_id"],"call-a");assert_eq!(events[1]["item"]["call_id"],"call-b");
+        let mut capture=ResponseCapture::default();for event in events {capture.observe(&event).unwrap();}assert_eq!(capture.finish().unwrap()["output"].as_array().unwrap().len(),2);
+    }
+    #[test]
+    fn explicit_indices_are_preserved_and_conflicting_or_unidentifiable_events_fail() {
+        let item=json!({"id":"a","type":"message","content":[]});
+        let added=json!({"type":"response.output_item.added","output_index":4,"item":item});
+        let events=decode_events(&[added.clone(),json!({"type":"response.output_item.done","item":item})]).unwrap();
+        assert_eq!(events[0]["output_index"],4);assert_eq!(events[1]["output_index"],4);
+        for next in [
+            json!({"type":"response.output_item.done","output_index":3,"item":item}),
+            json!({"type":"response.output_item.added","output_index":4,"item":{"id":"different","type":"message"}}),
+            json!({"type":"response.output_text.delta","item_id":"a","output_index":0,"delta":"wrong"}),
+        ] {assert!(decode_events(&[added.clone(),next]).is_err());}
+        for index in [json!(-1),json!("0"),json!(0.5)] {assert!(decode_events(&[json!({"type":"response.output_item.added","output_index":index,"item":item})]).is_err());}
+        assert!(decode_events(&[json!({"type":"response.output_item.done","item":{"type":"message"}})]).is_err());
+        let mut capture=ResponseCapture::default();
+        let events=decode_events(&[json!({"type":"response.output_item.done","item":item}),json!({"type":"response.completed","response":{"output":[{"id":"different","type":"message","content":[]}]}})]).unwrap();
+        assert!(events.into_iter().try_for_each(|event|capture.observe(&event)).is_err());
     }
 }

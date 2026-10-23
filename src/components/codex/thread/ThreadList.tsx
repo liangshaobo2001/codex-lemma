@@ -1,6 +1,17 @@
 import { listen } from '@tauri-apps/api/event';
 import type { LucideIcon } from 'lucide-react';
-import { Archive, FolderX, GitFork, Loader2, MailOpen, Pin, PinOff } from 'lucide-react';
+import {
+  Archive,
+  Copy,
+  FolderX,
+  GitFork,
+  Loader2,
+  MailOpen,
+  Pencil,
+  Pin,
+  PinOff,
+  Trash2,
+} from 'lucide-react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -368,7 +379,7 @@ export function ThreadList({ cwd: cwdProp, projectId, all = false }: ThreadListP
     (thread: Thread): ThreadAction[] => {
       const isPinned = pinnedIds.some((p) => p.id === thread.id);
       return [
-        { label: t('threadList.rename'), onSelect: () => openRenameDialog(thread) },
+        { label: t('threadList.rename'), icon: Pencil, onSelect: () => openRenameDialog(thread) },
         {
           label: isPinned ? t('threadList.unpin') : t('threadList.pin'),
           icon: isPinned ? PinOff : Pin,
@@ -408,11 +419,13 @@ export function ThreadList({ cwd: cwdProp, projectId, all = false }: ThreadListP
           : []),
         {
           label: t('threadList.delete'),
+          icon: Trash2,
           destructive: true,
           onSelect: () => void handleDelete(thread.id),
         },
         {
           label: t('threadList.copyId'),
+          icon: Copy,
           separatorBefore: true,
           onSelect: () => void navigator.clipboard.writeText(thread.id),
         },
@@ -503,9 +516,14 @@ export function ThreadList({ cwd: cwdProp, projectId, all = false }: ThreadListP
                   {action.separatorBefore && <ContextMenuSeparator />}
                   <ContextMenuItem
                     variant={action.destructive ? 'destructive' : 'default'}
+                    className={
+                      action.destructive
+                        ? 'data-[variant=destructive]:*:[svg]:!text-red-500 dark:data-[variant=destructive]:*:[svg]:!text-red-400'
+                        : undefined
+                    }
                     onSelect={action.onSelect}
                   >
-                    {action.icon && <action.icon className="mr-2 h-4 w-4" />}
+                    {action.icon && <action.icon className="h-4 w-4" />}
                     {action.label}
                   </ContextMenuItem>
                 </Fragment>

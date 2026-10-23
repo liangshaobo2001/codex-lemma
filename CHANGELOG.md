@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [0.1.10] - 2026-10-24
+
+- Accept Responses streams that omit output indices while retaining stable item or call IDs, including Bonsai/llama.cpp. Preserve explicit indices and reject conflicting identities instead of merging outputs.
+- Add matching icons to Rename, Delete, and Copy ID in the session menu, with one aligned text column.
+
 ## [0.1.9] - 2026-10-23
 
 - Detect native tool-search compatibility for custom Responses providers with a synthetic discovery/call/result probe; use ordinary function discovery when needed, then fall back to this chat's selected tools. Core CLI tools remain available.
