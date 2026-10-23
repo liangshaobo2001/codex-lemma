@@ -11,6 +11,7 @@ export function useComposerModel() {
     model: id ? (selection?.model ?? '') : draft.model,
     modelProvider: id ? (selection?.modelProvider ?? '') : draft.modelProvider,
     reasoningEffort: id ? (selection?.reasoningEffort ?? 'none') : draft.reasoningEffort,
+    effortInherited: Boolean(id && selection && selection.reasoningEffort === null),
     pending,
     error,
     unavailable: Boolean(id && !selection),

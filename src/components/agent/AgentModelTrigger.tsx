@@ -19,10 +19,15 @@ export const AgentModelTrigger = forwardRef<HTMLButtonElement, React.ComponentPr
     const {
       model: codexModel,
       reasoningEffort: codexReasoningEffort,
+      effortInherited,
       pending,
     } = useComposerModel();
     const label = pending ? t('composer.switchingModel') : codexModel || t('agent.selectModel');
-    const effort = codexReasoningEffort !== 'none' ? codexReasoningEffort : undefined;
+    const effort = effortInherited
+      ? 'default'
+      : codexReasoningEffort !== 'none'
+        ? codexReasoningEffort
+        : undefined;
 
     return (
       <Button

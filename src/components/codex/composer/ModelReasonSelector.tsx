@@ -60,6 +60,7 @@ type BaseModelSelectorProps = {
   /** Picks provider and model in one step; without it, onProviderChange then onValueChange are called. */
   onSelectModel?: (provider: Provider, id: string) => void;
   reasoningEffort?: ReasoningEffort;
+  effortInherited?: boolean;
   onReasoningEffortChange?: (value: ReasoningEffort) => void;
   disabled?: boolean;
   onClose?: () => void;
@@ -77,6 +78,7 @@ function BaseModelSelector({
   onValueChange,
   onSelectModel,
   reasoningEffort,
+  effortInherited = false,
   onReasoningEffortChange,
   disabled = false,
   onClose,
@@ -229,6 +231,7 @@ function BaseModelSelector({
       provider={provider}
       openAiModel={selectedOpenAiModel}
       value={reasoningEffort}
+      inherited={effortInherited}
       onChange={(option) => {
         onReasoningEffortChange(option);
         if (mode !== 'panel') {
@@ -269,9 +272,11 @@ function BaseModelSelector({
         >
           <div className="flex items-center gap-1.5 text-xs text-foreground">
             <span className="font-normal max-w-[160px] truncate">{activeLabel}</span>
-            {reasoningEffort !== undefined && reasoningEffort !== 'none' && (
+            {reasoningEffort !== undefined && (effortInherited || reasoningEffort !== 'none') && (
               <span className="bg-muted px-1.5 py-0.5 rounded text-[10px] font-mono capitalize text-muted-foreground border">
-                {t(`chat:effort.${reasoningEffort}`, { defaultValue: reasoningEffort })}
+                {t(`chat:effort.${effortInherited ? 'default' : reasoningEffort}`, {
+                  defaultValue: reasoningEffort,
+                })}
               </span>
             )}
           </div>
@@ -289,11 +294,18 @@ function BaseModelSelector({
 export function ModelReasonSelector({ mode = 'popover' }: { mode?: 'popover' | 'panel' }) {
   const { triggerInputFocus } = useCodexStore();
   const { openAiModels } = useModels();
-  const { modelProvider, model, reasoningEffort, pending, threadId } = useComposerModel();
-  const selectModel = (provider: Provider, id: string, effort = reasoningEffort) => {
-    const nextEffort = nextReasoningEffort(provider, id, effort, openAiModels) ?? effort;
+  const { modelProvider, model, reasoningEffort, effortInherited, pending, threadId } =
+    useComposerModel();
+  const selectModel = (provider: Provider, id: string, effort?: ReasoningEffort) => {
+    const nextEffort =
+      effort ??
+      (effortInherited
+        ? null
+        : (nextReasoningEffort(provider, id, reasoningEffort, openAiModels) ?? reasoningEffort));
     if (!threadId) {
-      useConfigStore.getState().setModelSelection(provider, id, nextEffort);
+      useConfigStore
+        .getState()
+        .setModelSelection(provider, id, nextEffort ?? useConfigStore.getState().reasoningEffort);
       return;
     }
     selectThreadModel(threadId, {
@@ -312,6 +324,7 @@ export function ModelReasonSelector({ mode = 'popover' }: { mode?: 'popover' | '
       onValueChange={(id) => selectModel(modelProvider, id)}
       onSelectModel={selectModel}
       reasoningEffort={reasoningEffort}
+      effortInherited={effortInherited}
       onReasoningEffortChange={(effort) => selectModel(modelProvider, model, effort)}
       onClose={triggerInputFocus}
       disabled={pending}

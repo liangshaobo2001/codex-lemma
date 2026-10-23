@@ -20,7 +20,7 @@ describe('confirmed per-thread model settings',()=>{
   expect(effectiveThreadModel({model:'gpt-6.1-sol',modelProvider:'openai',reasoningEffort:'low',thread:{model:'gpt-6-astra',modelProvider:'old'}})).toEqual({...selection,reasoningEffort:'low'});
  });
  it('supports old CLIs with model only at the top level and explicit null effort',()=>{
-  expect(effectiveThreadModel({model:'sol',modelProvider:'openai',reasoningEffort:null,thread:{reasoningEffort:'high'}})).toEqual({model:'sol',modelProvider:'openai',reasoningEffort:'none'});
+  expect(effectiveThreadModel({model:'sol',modelProvider:'openai',reasoningEffort:null,thread:{reasoningEffort:'high'}})).toEqual({model:'sol',modelProvider:'openai',reasoningEffort:null});
   expect(effectiveThreadModel({thread:{model:'qwen',modelProvider:'local'}})?.model).toBe('qwen');
  });
  it('never turns missing metadata into the draft default',()=>{
@@ -111,4 +111,11 @@ it('does not let a notification silently recover a rejected custom-model selecti
  vi.resetAllMocks();useThreadModels.setState({confirmed:{a:selection},pending:{},errors:{a:'Switch failed'}});
  await reconcileThreadModel('a',{modelProvider:'openai',model:'gpt-6-astra',effort:'medium'});
  expect(threadResume).not.toHaveBeenCalled();await expect(requireThreadModel('a')).rejects.toThrow('Switch failed');
+});
+
+it('preserves inherited effort without overwriting the new-chat draft preference',async()=>{
+ useCodexStore.setState({currentThreadId:'a'});useConfigStore.getState().setModelSelection('openai','gpt-6-astra','high');
+ confirmThreadModel('a',{model:'gpt-6.1-sol',modelProvider:'openai',reasoningEffort:null});
+ expect((await requireThreadModel('a')).reasoningEffort).toBeNull();expect(useConfigStore.getState().reasoningEffort).toBe('high');
+ expect(effectiveThreadModel({model:'gpt-6.1-sol',modelProvider:'openai',reasoningEffort:'none'})?.reasoningEffort).toBe('none');
 });

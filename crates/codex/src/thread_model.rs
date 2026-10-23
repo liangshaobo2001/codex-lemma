@@ -130,6 +130,14 @@ mod tests {
         assert!(r["serviceTier"].is_null());assert_eq!(r["excludeTurns"],true);
     }
     #[test]
+    fn inherited_effort_is_not_an_explicit_none_override() {
+        let mut inherited=params(); inherited.effort=None;
+        let old=json!({"sandbox":{"type":"readOnly"}});
+        assert!(resume_params(&old,&inherited).unwrap()["config"].get("model_reasoning_effort").is_none());
+        inherited.effort=Some("none".into());
+        assert_eq!(resume_params(&old,&inherited).unwrap()["config"]["model_reasoning_effort"],"none");
+    }
+    #[test]
     fn unsupported_sandbox_fails_before_detaching() {
         assert!(resume_params(&json!({"sandbox":{"type":"externalSandbox"}}),&params()).is_err());
         assert_eq!(resume_params(&json!({"sandbox":{"type":"readOnly"}}),&params()).unwrap()["sandbox"],"read-only");

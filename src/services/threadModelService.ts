@@ -27,7 +27,7 @@ export function effectiveThreadModel(response: ModelResponse): ThreadModel | nul
   if (!model || !modelProvider) return null;
   const reasoningEffort =
     'reasoningEffort' in response ? response.reasoningEffort : response.thread?.reasoningEffort;
-  return { model, modelProvider, reasoningEffort: reasoningEffort ?? 'none' };
+  return { model, modelProvider, reasoningEffort: reasoningEffort ?? null };
 }
 
 export function confirmThreadModel(id: string, response: ModelResponse) {
@@ -52,7 +52,11 @@ export function confirmThreadModel(id: string, response: ModelResponse) {
   if (useCodexStore.getState().currentThreadId === id) {
     useConfigStore
       .getState()
-      .setModelSelection(selection.modelProvider, selection.model, selection.reasoningEffort);
+      .setModelSelection(
+        selection.modelProvider,
+        selection.model,
+        selection.reasoningEffort ?? useConfigStore.getState().reasoningEffort
+      );
   }
 }
 
@@ -96,7 +100,7 @@ export async function reconcileThreadModel(
   if (
     known.model === reported.model &&
     known.modelProvider === reported.modelProvider &&
-    known.reasoningEffort === (reported.effort ?? 'none')
+    known.reasoningEffort === (reported.effort ?? null)
   )
     return;
   // HTTP responses and notifications use separate transports. Never let a late
@@ -106,7 +110,11 @@ export async function reconcileThreadModel(
 
 export async function requireThreadModel(id: string): Promise<ThreadModel> {
   // Re-read the tail because another selection may have been queued while awaiting it.
-  while (operations.has(id)) await operations.get(id);
+  const pending = operations.get(id);
+  if (pending) {
+    await pending;
+    return requireThreadModel(id);
+  }
   if (!useThreadModels.getState().confirmed[id] && !useThreadModels.getState().errors[id])
     await refreshThreadModel(id);
   const state = useThreadModels.getState();

@@ -31,6 +31,7 @@ type ReasoningEffortSelectorProps = {
   value: ReasoningEffort;
   onChange: (value: ReasoningEffort) => void;
   disabled?: boolean;
+  inherited?: boolean;
 };
 
 export function ReasoningEffortSelector({
@@ -39,6 +40,7 @@ export function ReasoningEffortSelector({
   value,
   onChange,
   disabled = false,
+  inherited = false,
 }: ReasoningEffortSelectorProps) {
   const { t } = useTranslation('chat');
   const options =
@@ -49,9 +51,11 @@ export function ReasoningEffortSelector({
   return (
     <EffortSlider
       label={t('composer.reasoningEffort')}
-      options={options}
-      value={value}
-      onChange={onChange}
+      options={inherited ? ['default', ...options] : options}
+      value={inherited ? 'default' : value}
+      onChange={(picked) => {
+        if (picked !== 'default') onChange(picked as ReasoningEffort);
+      }}
       disabled={disabled}
     />
   );

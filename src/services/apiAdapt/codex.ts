@@ -110,7 +110,7 @@ export async function switchThreadModel(params: {
   threadId: string;
   modelProvider: string;
   model: string;
-  effort: string;
+  effort: string | null;
   contextWindow?: number;
   turnId?: string;
 }) {

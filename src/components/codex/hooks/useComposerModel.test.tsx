@@ -34,3 +34,8 @@ describe('composer model display',()=>{
   expect(screen.getByRole('button').textContent).toContain('gpt-6-astra');
  });
 });
+
+it('labels an unset effort as Default instead of claiming reasoning is disabled',()=>{
+ useCodexStore.setState({currentThreadId:'a'});useThreadModels.setState({confirmed:{a:{modelProvider:'openai',model:'gpt-6.1-sol',reasoningEffort:null}},pending:{},errors:{}});
+ render(<AgentModelTrigger/>);expect(screen.getByRole('button').textContent).toContain('Default');
+});

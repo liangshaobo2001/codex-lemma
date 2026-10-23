@@ -43,3 +43,16 @@ describe('CodexModelSelector panel mode', () => {
     expect(screen.getByRole('option', { name: /Manage models/ })).toBeTruthy();
   });
 });
+
+describe('inherited reasoning effort',()=>{
+ it('shows Default as a separate option from explicit None',()=>{
+  itemsByProvider.local=[{id:'qwen',label:'Qwen local'}];
+  render(<CodexModelSelector mode="panel" provider="local" onProviderChange={vi.fn()} value="qwen" onValueChange={vi.fn()} reasoningEffort="none" effortInherited onReasoningEffortChange={vi.fn()}/>);
+  expect(screen.getByRole('slider').getAttribute('aria-valuetext')).toBe('Default');
+ });
+ it('changes to explicit None only when the user selects that level',()=>{
+  const onChange=vi.fn();
+  render(<CodexModelSelector mode="panel" provider="local" onProviderChange={vi.fn()} value="qwen" onValueChange={vi.fn()} reasoningEffort="none" effortInherited onReasoningEffortChange={onChange}/>);
+  fireEvent.keyDown(screen.getByRole('slider'),{key:'ArrowRight'});expect(onChange).toHaveBeenCalledWith('none');
+ });
+});

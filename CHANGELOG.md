@@ -2,7 +2,12 @@
 
 ## Unreleased
 
-## [0.1.6] - 2026-10-23
+## [0.1.7] - 2026-10-23
+
+- Preserve inherited reasoning effort when resuming a Desktop/CLI session; an unset value is distinct from explicit `none`, and the composer shows Default.
+- Includes the model-switching changes from the withheld 0.1.6 candidate.
+
+## [0.1.6] - Unreleased candidate
 
 - Confirm model/provider changes with the CLI before updating the picker; reconnect idle sessions when changing providers, preserving the same conversation and permission settings.
 - Keep effective model and reasoning effort per session, including Desktop/CLI histories and older responses that report the model only at the top level. Refresh cached sessions on selection.

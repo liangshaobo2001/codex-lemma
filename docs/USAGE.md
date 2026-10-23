@@ -23,7 +23,7 @@ The workspace navigation, project/chat names, composer controls and top toolbar 
 
 ## Switching models in an existing chat
 
-The composer shows the CLI-confirmed model for the selected chat. Opening a Desktop/CLI session and switching between cached chats refreshes that state. Changing providers reconnects the same chat when it is idle; its history, workspace and permissions are retained. Sending is paused during confirmation and after a failed switch. Choose a model again to retry.
+The composer shows the CLI-confirmed model for the selected chat. An unset reasoning effort is shown as Default and is inherited when sending; explicit none remains a separate choice. Opening a Desktop/CLI session and switching between cached chats refreshes that state. Changing providers reconnects the same chat when it is idle; its history, workspace and permissions are retained. Sending is paused during confirmation and after a failed switch. Choose a model again to retry.
 
 The OpenAI model visibility setting filters the picker only. An existing chat's active OpenAI model is still shown accurately. Changing a running turn within the same provider requires the CLI's step-model-switching capability and suitable model metadata; unsupported changes fail explicitly. Provider and custom context-window changes wait until the task finishes.
 

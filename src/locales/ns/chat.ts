@@ -63,6 +63,7 @@ export const chat = {
       modelSwitchFailed: '{{reason}} Select a model to retry; sending is paused.',
     },
     effort: {
+      default: 'Default',
       none: 'None',
       minimal: 'Minimal',
       low: 'Low',
@@ -454,6 +455,7 @@ export const chat = {
       modelSwitchFailed: '{{reason}} 请重新选择模型；发送已暂停。',
     },
     effort: {
+      default: '模型默认',
       none: '无',
       minimal: '最低',
       low: '低',

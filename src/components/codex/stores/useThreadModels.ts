@@ -4,7 +4,7 @@ import type { ReasoningEffort } from '@/bindings';
 export interface ThreadModel {
   model: string;
   modelProvider: string;
-  reasoningEffort: ReasoningEffort;
+  reasoningEffort: ReasoningEffort | null;
 }
 
 interface ThreadModelsState {
