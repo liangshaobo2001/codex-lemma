@@ -30,10 +30,20 @@ pub(crate) async fn api_start_thread(
     Ok(Json(result))
 }
 
+pub(crate) async fn api_switch_thread_model(
+    AxumState(state): AxumState<WebServerState>,
+    Json(params): Json<codexia_codex::thread_model::ModelParams>,
+) -> Result<Json<Value>, ErrorResponse> {
+    codexia_codex::thread_model::switch(&require_codex(&state)?.codex, params)
+        .await.map(Json).map_err(to_error_response)
+}
+
 pub(crate) async fn api_resume_thread(
     AxumState(state): AxumState<WebServerState>,
     Json(mut params): Json<Value>,
 ) -> Result<Json<Value>, ErrorResponse> {
+    let codex = &require_codex(&state)?.codex;
+    let _guard = codex.lock_thread_configuration(params["threadId"].as_str().unwrap_or("")).await;
     if let Some(object) = params.as_object_mut() {
         object.insert("excludeTurns".into(), json!(true));
         object.remove("initialTurnsPage");
@@ -142,9 +152,9 @@ pub(crate) async fn api_turn_start(
     AxumState(state): AxumState<WebServerState>,
     Json(params): Json<Value>,
 ) -> Result<Json<Value>, ErrorResponse> {
-    let result = require_codex(&state)?
-        .codex
-        .send_request("turn/start", params)
+    let codex = &require_codex(&state)?.codex;
+    let _guard = codex.lock_thread_configuration(params["threadId"].as_str().unwrap_or("")).await;
+    let result = codex.send_request("turn/start", params)
         .await
         .map_err(to_error_response)?;
     Ok(Json(result))
@@ -420,15 +430,20 @@ pub(crate) async fn api_list_mcp_server_status(
 /// These endpoints carry no logic of their own — the desktop app used to reach
 /// the same methods through one `#[tauri::command]` each, and spelling every
 /// one out as a full function here would just move that duplication.
+async fn send_thread_request(codex: &codexia_codex::CodexAppServer, method: &str, params: Value) -> Result<Value, String> {
+    let _guard = if matches!(method,"turn/steer"|"turn/settings/update"|"thread/queue/add"|"thread/queue/start"|"thread/goal/set"|"thread/compact/start"|"thread/delete") {
+        Some(codex.lock_thread_configuration(params["threadId"].as_str().unwrap_or("")).await)
+    } else { None };
+    codex.send_request(method,params).await
+}
+
 macro_rules! codex_passthrough {
     ($($name:ident => $method:literal,)*) => {$(
         pub(crate) async fn $name(
             AxumState(state): AxumState<WebServerState>,
             Json(params): Json<Value>,
         ) -> Result<Json<Value>, ErrorResponse> {
-            let result = require_codex(&state)?
-                .codex
-                .send_request($method, params)
+            let result = send_thread_request(&require_codex(&state)?.codex, $method, params)
                 .await
                 .map_err(to_error_response)?;
             Ok(Json(result))

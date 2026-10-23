@@ -106,6 +106,17 @@ export async function threadStart(params: ThreadStartParams) {
   return await postJson<ThreadStartResponse>('/api/codex/thread/start', params);
 }
 
+export async function switchThreadModel(params: {
+  threadId: string;
+  modelProvider: string;
+  model: string;
+  effort: string;
+  contextWindow?: number;
+  turnId?: string;
+}) {
+  return await postJson<ThreadResumeResponse>('/api/codex/thread/model', params);
+}
+
 export async function threadResume(params: ThreadResumeParams) {
   return await postJson<ThreadResumeResponse>('/api/codex/thread/resume', params);
 }

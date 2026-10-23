@@ -25,6 +25,7 @@ import {
   mergeHistoryEvents,
   useThreadHistory,
 } from '@/components/codex/stores/threadHistory';
+import { useThreadModels } from '@/components/codex/stores/useThreadModels';
 import {
   isWriterConflict,
   useWriterConflictStore,
@@ -55,6 +56,12 @@ import {
   turnSteer,
 } from './apiAdapt';
 import { historyPage } from './apiAdapt/history';
+import {
+  confirmThreadModel,
+  modelOperation,
+  refreshThreadModel,
+  requireThreadModel,
+} from './threadModelService';
 
 /** The context window the user set for a model in Settings → Models, as a Codex config override. */
 const contextWindowConfig = (provider: string, model: string): Record<string, number> => {
@@ -167,6 +174,8 @@ const syncThreadToStore = (
   } = {}
 ) => {
   const { resetCurrentTurnId = false, activate = true } = options;
+  const confirmedModel = useThreadModels.getState().confirmed[threadId];
+  thread = { ...thread, ...confirmedModel };
   const { activeThreadIds, events, threads, inputFocusTrigger } = useCodexStore.getState();
 
   return {
@@ -232,6 +241,8 @@ export const codexService = {
       const state = useCodexStore.getState();
 
       if (state.activeThreadIds.includes(threadId) && state.events[threadId]) {
+        set({ currentThreadId: threadId });
+        await refreshThreadModel(threadId);
         // Live thread — derive the active turn id from streaming events so the
         // Stop button works correctly when a turn is in progress.
         const threadEvents = state.events[threadId] ?? [];
@@ -261,6 +272,7 @@ export const codexService = {
             return;
           }
           const version = useThreadHistory.getState().begin(threadId);
+          useThreadModels.getState().begin(threadId);
           try {
             const page = await historyPage(threadId);
             if (useThreadHistory.getState().threads[threadId]?.generation === version)
@@ -353,6 +365,7 @@ export const codexService = {
       };
       const response = await apiThreadStart(params);
       const thread = response.thread;
+      confirmThreadModel(thread.id, response);
 
       set({ ...syncThreadToStore(thread.id, thread, []) });
 
@@ -374,17 +387,14 @@ export const codexService = {
       const extra =
         overrides?.config || overrides?.modelProvider ? {} : await resumeConfigFor(threadId);
       const previousEvents = new Set(useCodexStore.getState().events[threadId] ?? []);
-      const response = await threadResume({ threadId, ...extra, ...overrides, excludeTurns: true });
+      const response = await modelOperation(threadId, async () => {
+        const result = await threadResume({ threadId, ...extra, ...overrides, excludeTurns: true });
+        confirmThreadModel(threadId, result);
+        return result;
+      });
 
       const page = await historyPage(threadId);
       if (useThreadHistory.getState().threads[threadId]?.generation !== version) return;
-      // The picker follows the thread: it shows (and new turns use) the thread's own provider and model.
-      const { modelProvider, model } = response.thread;
-      if (activate() && modelProvider && model) {
-        const config = useConfigStore.getState();
-        if (config.modelProvider !== modelProvider) config.setModelProvider(modelProvider as never);
-        if (useConfigStore.getState().model !== model) useConfigStore.getState().setModel(model);
-      }
 
       const state = useCodexStore.getState();
       const liveTurnId = state.turnTimingMap[threadId]?.turnId;
@@ -436,6 +446,7 @@ export const codexService = {
         excludeTurns: true,
       };
       const response = await threadFork(params);
+      confirmThreadModel(response.thread.id, response);
       const page = await historyPage(response.thread.id);
       useThreadHistory.getState().reset(response.thread.id, page);
       set({
@@ -468,7 +479,8 @@ export const codexService = {
     try {
       const userInputs = buildUserInputs(input, images);
 
-      const { model, reasoningEffort, accessMode, webSearchRequest } = useConfigStore.getState();
+      const { model, reasoningEffort } = await requireThreadModel(threadId);
+      const { accessMode, webSearchRequest } = useConfigStore.getState();
       const { sandbox, approvalPolicy, approvalsReviewer } = ACCESS_MODES[accessMode];
 
       const response = await turnStart({
@@ -508,6 +520,7 @@ export const codexService = {
     try {
       const userInputs = buildUserInputs(input, images);
 
+      await requireThreadModel(threadId);
       const response = await turnSteer({
         threadId,
         expectedTurnId,
@@ -525,6 +538,7 @@ export const codexService = {
    * idle after a completed turn. Throws if the server rejects it.
    */
   async threadQueueAdd(threadId: string, input: string, images: string[] = []) {
+    await requireThreadModel(threadId);
     const response = await threadQueueAdd({
       threadId,
       input: buildUserInputs(input, images),
@@ -545,6 +559,7 @@ export const codexService = {
   /** Starts one queued message now; the server rejects it while a turn is active. */
   async threadQueueStart(threadId: string, queuedSubmissionId: string) {
     try {
+      await requireThreadModel(threadId);
       const response = await threadQueueStart({ threadId, queuedSubmissionId });
       useCodexStore.setState({ currentTurnId: response.turn.id });
       return response.turn;
@@ -586,6 +601,7 @@ export const codexService = {
   },
   async threadGoalSet(params: ThreadGoalSetParams) {
     try {
+      await requireThreadModel(params.threadId);
       const response = await threadGoalSet(params);
       return response;
     } catch (error: unknown) {
@@ -595,6 +611,7 @@ export const codexService = {
   },
   async threadCompact(threadId: string) {
     try {
+      await requireThreadModel(threadId);
       return await threadCompactStart({ threadId });
     } catch (error: unknown) {
       console.error('[CodexService] threadCompact error:', error);

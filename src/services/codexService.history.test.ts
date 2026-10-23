@@ -3,6 +3,7 @@ import type { ServerNotification } from '@/bindings';
 import type { Thread, ThreadResumeResponse } from '@/bindings/v2';
 import { useCodexStore } from '@/components/codex/stores';
 import { useThreadHistory } from '@/components/codex/stores/threadHistory';
+import { useThreadModels } from '@/components/codex/stores/useThreadModels';
 import { threadResume } from './apiAdapt';
 import { historyPage, type HistoryPage } from './apiAdapt/history';
 import { codexService } from './codexService';
@@ -17,6 +18,7 @@ const delta = (text: string): ServerNotification => ({ method: 'item/agentMessag
 describe('bounded history opens', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    useThreadModels.setState({confirmed:{},pending:{},errors:{}});
     useCodexStore.setState({ threads: [thread('a'), thread('b')], currentThreadId: 'a', activeThreadIds: [], events: {}, turnTimingMap: {} });
     useThreadHistory.setState({ threads: {} });
     vi.mocked(historyPage).mockResolvedValue(page);

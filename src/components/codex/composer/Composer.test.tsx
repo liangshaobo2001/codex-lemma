@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { forwardRef, useImperativeHandle } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useThreadModels } from '@/components/codex/stores/useThreadModels';
 
 const threadQueueAdd = vi.fn();
 const turnSteer = vi.fn();
@@ -64,6 +65,7 @@ const setThread = (active: boolean) =>
 describe('Composer while a turn runs', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useThreadModels.setState({ confirmed: { t1: { modelProvider: 'fixture', model: 'test-model', reasoningEffort: 'medium' } }, pending: {}, errors: {} });
     useInputStore.setState({ inputValue: 'follow up' });
   });
 
@@ -129,5 +131,20 @@ describe('Composer sending to an idle thread', () => {
 
     await waitFor(() => expect(useInputStore.getState().inputValue).toBe('hello'));
     expect(useWriterConflictStore.getState().locked.t1).toBeUndefined();
+  });
+});
+
+describe('Composer model confirmation guard',()=>{
+  beforeEach(()=>{vi.clearAllMocks();setThread(false);useInputStore.setState({inputValue:'preserve draft'});useThreadModels.setState({confirmed:{t1:{modelProvider:'fixture',model:'model',reasoningEffort:'medium'}},pending:{},errors:{}});});
+  it('keeps the draft and disables sending during a switch',()=>{
+    useThreadModels.getState().begin('t1');render(<Composer/>);
+    const send=screen.getByRole('button',{name:'Send message'});expect(send.hasAttribute('disabled')).toBe(true);
+    fireEvent.submit(send.closest('form')!);expect(turnStart).not.toHaveBeenCalled();expect(useInputStore.getState().inputValue).toBe('preserve draft');
+  });
+  it('shows the failure and does not fall back to sending through the old model',()=>{
+    useThreadModels.getState().fail('t1','Provider switch refused');render(<Composer/>);
+    expect(screen.getByRole('alert').textContent).toContain('Provider switch refused');
+    const send=screen.getByRole('button',{name:'Send message'});fireEvent.submit(send.closest('form')!);
+    expect(turnStart).not.toHaveBeenCalled();expect(useInputStore.getState().inputValue).toBe('preserve draft');
   });
 });

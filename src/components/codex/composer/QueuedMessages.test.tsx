@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useThreadModels } from '@/components/codex/stores/useThreadModels';
 
 const threadQueueList = vi.fn();
 const threadQueueDelete = vi.fn();
@@ -25,6 +26,7 @@ const item = (id: string, text: string) => ({
 describe('QueuedMessages', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useThreadModels.setState({ confirmed: { t1: { modelProvider: 'fixture', model: 'test-model', reasoningEffort: 'medium' } }, pending: {}, errors: {} });
     useThreadQueueStore.setState({ queues: {} });
     threadQueueList.mockResolvedValue({
       data: [item('q1', 'first'), item('q2', 'second')],

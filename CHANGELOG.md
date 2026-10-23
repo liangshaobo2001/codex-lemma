@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [0.1.6] - 2026-10-23
+
+- Confirm model/provider changes with the CLI before updating the picker; reconnect idle sessions when changing providers, preserving the same conversation and permission settings.
+- Keep effective model and reasoning effort per session, including Desktop/CLI histories and older responses that report the model only at the top level. Refresh cached sessions on selection.
+- Pause sends and queue starts during switches and after failures; preserve drafts and show an actionable error rather than silently using the old provider. Persist supported running-turn changes for later turns too.
+
 ## [0.1.5] - 2026-10-23
 
 - Open large sessions with metadata-only resume and bounded history pages instead of hydrating the full transcript. Load older records on upward scrolling; keep at most three history pages in the view and reload evicted pages when returning.

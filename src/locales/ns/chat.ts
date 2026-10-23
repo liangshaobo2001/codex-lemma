@@ -56,6 +56,11 @@ export const chat = {
       turnAlreadyEnded:
         'The running turn already ended, so this change only applies to the next turn.',
       turnChangeFailed: 'Could not change the running turn: {{reason}}',
+      switchingModel: 'Updating model…',
+      modelUnavailable: 'Model unavailable. Select a model to continue.',
+      modelNotConfirmed: 'The CLI did not confirm the selected model.',
+      providerSwitchIdle: 'Wait for the current task to finish before switching providers.',
+      modelSwitchFailed: '{{reason}} Select a model to retry; sending is paused.',
     },
     effort: {
       none: 'None',
@@ -442,6 +447,11 @@ export const chat = {
       reasoningEffort: '推理强度',
       turnAlreadyEnded: '当前这一轮已经结束，此更改将从下一轮开始生效。',
       turnChangeFailed: '无法修改正在进行的这一轮：{{reason}}',
+      switchingModel: '正在更新模型…',
+      modelUnavailable: '暂时无法确认当前模型，请选择模型后继续。',
+      modelNotConfirmed: 'CLI 未确认所选模型。',
+      providerSwitchIdle: '请等待当前任务结束后再切换提供商。',
+      modelSwitchFailed: '{{reason}} 请重新选择模型；发送已暂停。',
     },
     effort: {
       none: '无',

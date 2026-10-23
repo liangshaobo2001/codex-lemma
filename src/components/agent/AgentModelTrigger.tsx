@@ -1,7 +1,7 @@
 import { ChevronDown } from 'lucide-react';
 import { forwardRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useConfigStore } from '@/components/codex/stores';
+import { useComposerModel } from '@/components/codex/hooks/useComposerModel';
 import { Button } from '@/components/ui/button';
 
 /**
@@ -16,9 +16,12 @@ import { Button } from '@/components/ui/button';
 export const AgentModelTrigger = forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(
   function AgentModelTrigger(props, ref) {
     const { t } = useTranslation('chat');
-    const codexModel = useConfigStore((s) => s.model);
-    const codexReasoningEffort = useConfigStore((s) => s.reasoningEffort);
-    const label = codexModel || t('agent.selectModel');
+    const {
+      model: codexModel,
+      reasoningEffort: codexReasoningEffort,
+      pending,
+    } = useComposerModel();
+    const label = pending ? t('composer.switchingModel') : codexModel || t('agent.selectModel');
     const effort = codexReasoningEffort !== 'none' ? codexReasoningEffort : undefined;
 
     return (
@@ -30,6 +33,8 @@ export const AgentModelTrigger = forwardRef<HTMLButtonElement, React.ComponentPr
         // so the padding has to be set with the same variant. Left 4px, right 6px.
         className="h-8 gap-2 has-[>svg]:pl-1 has-[>svg]:pr-1.5 border border-transparent transition-all hover:border-input hover:bg-accent/50"
         {...props}
+        disabled={pending || props.disabled}
+        aria-busy={pending}
       >
         <div className="flex items-center gap-1.5 text-xs text-foreground">
           <span className="font-medium max-w-[120px] truncate leading-none py-0.5 -translate-y-px">

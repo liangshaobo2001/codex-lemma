@@ -21,6 +21,12 @@ Completion sound is off by default. Enable it under **Settings → Codex → Tas
 
 The workspace navigation, project/chat names, composer controls and top toolbar use regular-weight text. Settings typography and intentional emphasis inside messages retain their own hierarchy.
 
+## Switching models in an existing chat
+
+The composer shows the CLI-confirmed model for the selected chat. Opening a Desktop/CLI session and switching between cached chats refreshes that state. Changing providers reconnects the same chat when it is idle; its history, workspace and permissions are retained. Sending is paused during confirmation and after a failed switch. Choose a model again to retry.
+
+The OpenAI model visibility setting filters the picker only. An existing chat's active OpenAI model is still shown accurately. Changing a running turn within the same provider requires the CLI's step-model-switching capability and suitable model metadata; unsupported changes fail explicitly. Provider and custom context-window changes wait until the task finishes.
+
 ## Composer statistics
 
 Cache hit is the session's cumulative cached-input tokens divided by cumulative input tokens, weighted by token count across all requests. It is not the last request's hit rate or an average of request percentages. One decimal is shown; a partial hit that would round to 100.0% displays >99.9%. Hover for exact cumulative counts. Missing or invalid counts display a dash.

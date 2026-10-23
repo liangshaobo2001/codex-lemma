@@ -21,11 +21,13 @@ import { useAgentCenterStore } from '@/stores';
 import { useSettingsStore } from '@/stores/settings';
 import { useInputStore } from '@/stores/useInputStore';
 import { useWorkspaceStore } from '@/stores/useWorkspaceStore';
+import { useComposerModel } from '../hooks/useComposerModel';
 import { AccessModePopover } from './AccessModePopover';
 import { ComposerMenu } from './ComposerMenu';
 import { ComposerToolbarProvider } from './ComposerToolbarContext';
 import { DictationButton } from './DictationButton';
 import { ComposerEditor, type ComposerEditorHandle } from './editor/ComposerEditor';
+import { ModelStatus } from './ModelStatus';
 import { QueuedMessages } from './QueuedMessages';
 import { SlashCommandDialogs } from './SlashCommandDialogs';
 import { SlashCommandPopover } from './SlashCommandsSelector';
@@ -58,6 +60,8 @@ function goalStatusLabel(status: ThreadGoal['status'], t: TFunction): string {
 export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
   const { t } = useTranslation('chat');
   const widgets = useSettingsStore((s) => s.composerWidgets);
+  const modelState = useComposerModel();
+  const modelBlocked = modelState.pending || Boolean(modelState.error) || modelState.unavailable;
   const [images, setImages] = useState<string[]>([]);
   const [slashDialog, setSlashDialog] = useState<SlashDialog | null>(null);
   const { inputValue, setInputValue, appendFileLinks } = useInputStore();
@@ -86,6 +90,7 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (modelBlocked) return;
     const text = inputValue.trim();
     if (!text && images.length === 0) {
       return;
@@ -257,6 +262,7 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
           onOpenDialog={setSlashDialog}
         />
 
+        <ModelStatus />
         <QueuedMessages threadId={currentThreadId} running={threadStatus?.type === 'active'} />
 
         <div className="border rounded-xl bg-background shadow-sm focus-within:ring-1 focus-within:ring-ring transition-all overflow-hidden">
@@ -380,7 +386,7 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
                       className="h-10 w-10 md:h-8 md:w-8 rounded-full"
                       aria-label={t('composer.queueMessage')}
                       title={t('composer.queueMessage')}
-                      disabled={!inputValue.trim() && images.length === 0}
+                      disabled={modelBlocked || (!inputValue.trim() && images.length === 0)}
                       onClick={() => void handleQueue()}
                     >
                       <ListPlus className="w-4 h-4" />
@@ -400,7 +406,7 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
                   <Button
                     type="submit"
                     aria-label={t('composer.sendMessage')}
-                    disabled={!inputValue.trim() && images.length === 0}
+                    disabled={modelBlocked || (!inputValue.trim() && images.length === 0)}
                     size="icon"
                     className="h-10 w-10 md:h-8 md:w-8 rounded-full"
                   >

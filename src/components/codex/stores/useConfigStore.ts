@@ -22,6 +22,7 @@ export interface ConfigStore {
   personality: Personality | null;
   collaborationMode: ModeKind;
   threadCwdMode: ThreadCwdMode;
+  setModelSelection: (provider: string, model: string, effort: ReasoningEffort) => void;
   setModel: (model: string) => void;
   setModelProvider: (provider: Provider) => void;
   setAccessMode: (mode: AccessMode) => void;
@@ -89,6 +90,13 @@ export const useConfigStore = create<ConfigStore>()(
       collaborationMode: 'default',
       threadCwdMode: 'local',
 
+      setModelSelection: (modelProvider, model, reasoningEffort) =>
+        set((state) => ({
+          modelProvider,
+          model,
+          reasoningEffort,
+          providerModels: { ...state.providerModels, [modelProvider]: model },
+        })),
       setModel: (model: string) => {
         set((state) => ({
           model,

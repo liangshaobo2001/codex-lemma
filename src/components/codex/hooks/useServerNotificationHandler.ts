@@ -8,6 +8,7 @@ import {
 } from '@/components/codex/stores';
 import { useServerProjectsStore } from '@/features/projects/useServerProjectsStore';
 import { allowSleep, preventSleep } from '@/services/apiAdapt';
+import { reconcileThreadModel } from '@/services/threadModelService';
 import { playBeep } from '@/utils/beep';
 import { shouldPlayCompletionBeep } from './beepOnCompletion';
 
@@ -80,13 +81,13 @@ export function useServerNotificationHandler(
           return;
         }
 
-        if (
-          [
-            'thread/settings/updated',
-            'serverRequest/resolved',
-            'mcpServer/startupStatus/updated',
-          ].includes(method)
-        ) {
+        if (method === 'thread/settings/updated') {
+          reconcileThreadModel(threadId, payload.params.threadSettings).catch((error: unknown) => {
+            console.warn('[useServerNotificationHandler] model refresh failed:', error);
+          });
+          return;
+        }
+        if (['serverRequest/resolved', 'mcpServer/startupStatus/updated'].includes(method)) {
           return;
         }
 

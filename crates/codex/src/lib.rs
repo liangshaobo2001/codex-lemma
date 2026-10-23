@@ -8,6 +8,7 @@ pub mod protocol;
 pub mod providers;
 pub mod stats;
 pub mod history;
+pub mod thread_model;
 mod server_request;
 pub mod utils;
 

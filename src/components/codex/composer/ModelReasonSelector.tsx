@@ -1,6 +1,7 @@
 import { Check, ChevronDown, Search, Settings } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import type { ReasoningEffort } from '@/bindings';
 import { useCodexStore, useConfigStore } from '@/components/codex/stores';
 import type { ModelListItem } from '@/components/codex/types';
@@ -17,28 +18,31 @@ import {
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { codexService } from '@/services/codexService';
+import { selectThreadModel } from '@/services/threadModelService';
 import { useLayoutStore } from '@/stores';
 import type { Provider } from '@/stores/settings';
+import { useComposerModel } from '../hooks/useComposerModel';
 import { useModels } from '../hooks/useModels';
 import { nextReasoningEffort, ReasoningEffortSelector } from './ReasoningEffortSelector';
-import { applyToRunningTurn } from './runningTurnSettings';
 
 function ModelItem({
   provider,
   item,
   selected,
+  disabled,
   onSelect,
 }: {
   provider: string;
   item: ModelListItem;
   selected: boolean;
+  disabled?: boolean;
   onSelect: () => void;
 }) {
   return (
     <CommandItem
       value={`${provider} ${item.label} ${item.id}`}
       onSelect={onSelect}
+      disabled={disabled}
       title={item.description ?? item.id}
       className="gap-1.5 pl-7 text-xs"
     >
@@ -182,6 +186,7 @@ function BaseModelSelector({
                 provider={p}
                 item={item}
                 selected={p === provider && item.id === value}
+                disabled={disabled}
                 onSelect={() => handleSelect(p, item.id)}
               />
             ))}
@@ -282,58 +287,34 @@ function BaseModelSelector({
 }
 
 export function ModelReasonSelector({ mode = 'popover' }: { mode?: 'popover' | 'panel' }) {
-  const { currentThreadId, triggerInputFocus } = useCodexStore();
-  const { openAiModels, contextWindowOf } = useModels();
-  const {
-    modelProvider,
-    providerModels,
-    setModel,
-    setModelProvider,
-    reasoningEffort,
-    setReasoningEffort,
-  } = useConfigStore();
-
-  const selectModel = (p: Provider, id: string) => {
-    const providerChanged = p !== modelProvider;
-    if (providerChanged) setModelProvider(p);
-    setModel(id);
-    const nextEffort = nextReasoningEffort(p, id, reasoningEffort, openAiModels);
-    if (nextEffort) setReasoningEffort(nextEffort);
-
-    if (currentThreadId && providerChanged) {
-      // A thread is bound to a provider; resuming it with another one moves the conversation there.
-      const contextWindow = contextWindowOf(p, id);
-      void codexService.threadResume(currentThreadId, {
-        modelProvider: p,
-        model: id,
-        ...(contextWindow ? { config: { model_context_window: contextWindow } } : {}),
-      });
-    } else {
-      // A user pick also reaches the turn that is running right now, if any.
-      applyToRunningTurn({ model: id });
+  const { triggerInputFocus } = useCodexStore();
+  const { openAiModels } = useModels();
+  const { modelProvider, model, reasoningEffort, pending, threadId } = useComposerModel();
+  const selectModel = (provider: Provider, id: string, effort = reasoningEffort) => {
+    const nextEffort = nextReasoningEffort(provider, id, effort, openAiModels) ?? effort;
+    if (!threadId) {
+      useConfigStore.getState().setModelSelection(provider, id, nextEffort);
+      return;
     }
+    selectThreadModel(threadId, {
+      modelProvider: provider,
+      model: id,
+      reasoningEffort: nextEffort,
+    }).catch((error: unknown) =>
+      toast.error(error instanceof Error ? error.message : String(error))
+    );
   };
-
-  const onProviderChange = (p: Provider) => setModelProvider(p);
-  const handleModelChange = (id: string) => {
-    setModel(id);
-    applyToRunningTurn({ model: id });
-  };
-  const handleEffortChange = (effort: ReasoningEffort) => {
-    setReasoningEffort(effort);
-    applyToRunningTurn({ effort });
-  };
-
   return (
     <BaseModelSelector
       provider={modelProvider}
-      onProviderChange={onProviderChange}
-      value={providerModels[modelProvider] ?? ''}
-      onValueChange={handleModelChange}
+      onProviderChange={() => {}}
+      value={model}
+      onValueChange={(id) => selectModel(modelProvider, id)}
       onSelectModel={selectModel}
       reasoningEffort={reasoningEffort}
-      onReasoningEffortChange={handleEffortChange}
+      onReasoningEffortChange={(effort) => selectModel(modelProvider, model, effort)}
       onClose={triggerInputFocus}
+      disabled={pending}
       mode={mode}
     />
   );

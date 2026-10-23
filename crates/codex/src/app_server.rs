@@ -19,10 +19,21 @@ pub struct CodexAppServer {
     stdin: Mutex<ChildStdin>,
     pending: Mutex<HashMap<u64, oneshot::Sender<Result<Value, String>>>>,
     next_id: AtomicU64,
+    thread_configuration_locks: Mutex<HashMap<String, std::sync::Weak<Mutex<()>>>>,
     _request_metrics: Option<crate::request_metrics::Collector>,
 }
 
 impl CodexAppServer {
+    pub async fn lock_thread_configuration(&self, thread_id: &str) -> tokio::sync::OwnedMutexGuard<()> {
+        let lock = {
+            let mut locks = self.thread_configuration_locks.lock().await;
+            locks.retain(|_, lock| lock.strong_count() > 0);
+            if let Some(lock) = locks.get(thread_id).and_then(std::sync::Weak::upgrade) { lock }
+            else { let lock = Arc::new(Mutex::new(())); locks.insert(thread_id.into(), Arc::downgrade(&lock)); lock }
+        };
+        lock.lock_owned().await
+    }
+
     async fn write_message(&self, value: Value) -> Result<(), String> {
         let mut stdin = self.stdin.lock().await;
         let mut line = serde_json::to_string(&value).map_err(|e| e.to_string())?;
@@ -172,6 +183,7 @@ pub async fn connect_codex(event_sink: Arc<dyn EventSink>) -> Result<Arc<CodexAp
         stdin: Mutex::new(stdin),
         pending: Mutex::new(HashMap::new()),
         next_id: AtomicU64::new(1),
+        thread_configuration_locks: Mutex::new(HashMap::new()),
         _request_metrics: collector,
     });
     log::info!("Connected to codex app-server");
