@@ -102,8 +102,8 @@ describe('codexUserTurns', () => {
     ]);
 
     expect(codexUserTurns(items)).toEqual([
-      { id: 'event-0', text: 'Find the bug' },
-      { id: 'event-3', text: 'Fix it' },
+      { id: JSON.stringify(['item/started', 'turn1', 'u-turn1']), text: 'Find the bug' },
+      { id: JSON.stringify(['item/started', 'turn2', 'u-turn2']), text: 'Fix it' },
     ]);
   });
 });

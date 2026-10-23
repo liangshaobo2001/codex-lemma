@@ -1,4 +1,4 @@
-import type { ReasoningEffort } from '@/bindings';
+import type { ReasoningEffort, ServerNotification } from '@/bindings';
 import type {
   SandboxMode,
   SandboxPolicy,
@@ -20,6 +20,12 @@ import {
   useThreadReadStateStore,
 } from '@/components/codex/stores';
 import {
+  historyEvents,
+  LIVE_EVENT_LIMIT,
+  mergeHistoryEvents,
+  useThreadHistory,
+} from '@/components/codex/stores/threadHistory';
+import {
   isWriterConflict,
   useWriterConflictStore,
 } from '@/components/codex/stores/useWriterConflictStore';
@@ -27,7 +33,6 @@ import { findProjectForCwd } from '@/features/projects/projectModel';
 import { useServerProjectsStore } from '@/features/projects/useServerProjectsStore';
 import { useWorkspaceStore } from '@/stores';
 import { useModelSettingsStore, useSettingsStore } from '@/stores/settings';
-import { convertThreadHistoryToEvents } from '@/utils/threadHistoryConverter';
 import {
   threadStart as apiThreadStart,
   gitCreateWorktree,
@@ -49,6 +54,7 @@ import {
   turnStart,
   turnSteer,
 } from './apiAdapt';
+import { historyPage } from './apiAdapt/history';
 
 /** The context window the user set for a model in Settings → Models, as a Codex config override. */
 const contextWindowConfig = (provider: string, model: string): Record<string, number> => {
@@ -154,40 +160,29 @@ const getThreadPreviewFromInput = (userInputs: UserInput[]): string => {
 const syncThreadToStore = (
   threadId: string,
   thread: Thread,
-  historicalEvents: any[],
+  historicalEvents: ServerNotification[],
   options: {
     resetCurrentTurnId?: boolean;
+    activate?: boolean;
   } = {}
 ) => {
-  const { resetCurrentTurnId = false } = options;
+  const { resetCurrentTurnId = false, activate = true } = options;
   const { activeThreadIds, events, threads, inputFocusTrigger } = useCodexStore.getState();
 
   return {
-    currentThreadId: threadId,
+    ...(activate ? { currentThreadId: threadId, inputFocusTrigger: inputFocusTrigger + 1 } : {}),
     activeThreadIds: activeThreadIds.includes(threadId)
       ? activeThreadIds
       : [...activeThreadIds, threadId],
     threads: threads.some((t) => t.id === threadId)
-      ? threads.map((t) => (t.id === threadId ? thread : t))
-      : [thread, ...threads],
+      ? threads.map((t) => (t.id === threadId ? { ...thread, turns: [] } : t))
+      : [{ ...thread, turns: [] }, ...threads],
     events: {
       ...events,
-      [threadId]: historicalEvents,
+      [threadId]: historicalEvents.slice(-LIVE_EVENT_LIMIT),
     },
-    inputFocusTrigger: inputFocusTrigger + 1,
     ...(resetCurrentTurnId ? { currentTurnId: null } : {}),
   };
-};
-
-/** Shared logic for thread fork: sync the updated thread to the store and return it. */
-const applyThreadMutation = (
-  set: typeof useCodexStore.setState,
-  threadId: string,
-  thread: Thread
-): Thread => {
-  const historicalEvents = convertThreadHistoryToEvents(thread);
-  set({ ...syncThreadToStore(threadId, thread, historicalEvents, { resetCurrentTurnId: true }) });
-  return thread;
 };
 
 export const codexService = {
@@ -240,8 +235,9 @@ export const codexService = {
         // Live thread — derive the active turn id from streaming events so the
         // Stop button works correctly when a turn is in progress.
         const threadEvents = state.events[threadId] ?? [];
-        let activeTurnId: string | null = null;
-        for (let i = threadEvents.length - 1; i >= 0; i--) {
+        const timing = state.turnTimingMap[threadId];
+        let activeTurnId: string | null = timing?.status === 'inProgress' ? timing.turnId : null;
+        for (let i = threadEvents.length - 1; !timing && activeTurnId === null && i >= 0; i--) {
           const e = threadEvents[i];
           if (e.method === 'turn/started') {
             activeTurnId = (e.params as { turn: { id: string } }).turn.id;
@@ -256,6 +252,24 @@ export const codexService = {
           currentTurnId: activeTurnId,
           inputFocusTrigger: state.inputFocusTrigger + 1,
         }));
+        if (!useThreadHistory.getState().threads[threadId]) {
+          if (
+            threadEvents.length === 0 &&
+            !state.threads.find((t) => t.id === threadId)?.preview.trim()
+          ) {
+            useThreadHistory.getState().reset(threadId, { entries: [], nextCursor: null });
+            return;
+          }
+          const version = useThreadHistory.getState().begin(threadId);
+          try {
+            const page = await historyPage(threadId);
+            if (useThreadHistory.getState().threads[threadId]?.generation === version)
+              useThreadHistory.getState().reset(threadId, page);
+          } catch (error) {
+            if (useThreadHistory.getState().threads[threadId]?.generation === version)
+              useThreadHistory.getState().fail(threadId, error);
+          }
+        }
       } else {
         // Dormant — switch view and resume the agent process immediately.
         set((state) => ({
@@ -351,36 +365,67 @@ export const codexService = {
   },
   async threadResume(threadId: string, overrides?: Omit<ThreadResumeParams, 'threadId'>) {
     const set = useCodexStore.setState;
+    const version = useThreadHistory.getState().begin(threadId);
+    const selectedAtStart = useCodexStore.getState().currentThreadId;
+    const activate = () =>
+      useCodexStore.getState().currentThreadId === threadId ||
+      (selectedAtStart === null && useCodexStore.getState().currentThreadId === null);
     try {
       const extra =
         overrides?.config || overrides?.modelProvider ? {} : await resumeConfigFor(threadId);
-      const response = await threadResume({ threadId, ...extra, ...overrides });
+      const previousEvents = new Set(useCodexStore.getState().events[threadId] ?? []);
+      const response = await threadResume({ threadId, ...extra, ...overrides, excludeTurns: true });
 
+      const page = await historyPage(threadId);
+      if (useThreadHistory.getState().threads[threadId]?.generation !== version) return;
       // The picker follows the thread: it shows (and new turns use) the thread's own provider and model.
       const { modelProvider, model } = response.thread;
-      if (modelProvider && model) {
+      if (activate() && modelProvider && model) {
         const config = useConfigStore.getState();
         if (config.modelProvider !== modelProvider) config.setModelProvider(modelProvider as never);
         if (useConfigStore.getState().model !== model) useConfigStore.getState().setModel(model);
       }
 
-      const historicalEvents = convertThreadHistoryToEvents(response.thread);
-      const normalized = response.thread;
+      const state = useCodexStore.getState();
+      const liveTurnId = state.turnTimingMap[threadId]?.turnId;
+      const live = (state.events[threadId] ?? []).filter((event) => {
+        const params = event.params as { turnId?: string; turn?: { id: string } };
+        return (
+          !previousEvents.has(event) ||
+          (liveTurnId !== undefined && (params.turnId ?? params.turn?.id) === liveTurnId)
+        );
+      });
+      const historicalEvents = mergeHistoryEvents(historyEvents(page, threadId), live);
+      useThreadHistory.getState().reset(threadId, page);
+      const normalized = { ...response.thread, turns: [] };
 
       useWriterConflictStore.getState().unlock(threadId);
-      set({ ...syncThreadToStore(threadId, normalized, historicalEvents) });
+      set({
+        ...syncThreadToStore(threadId, normalized, historicalEvents, { activate: activate() }),
+      });
     } catch (error: unknown) {
+      if (useThreadHistory.getState().threads[threadId]?.generation !== version) return;
       if (!isWriterConflict(error)) {
+        useThreadHistory.getState().fail(threadId, error);
         console.error('[CodexService] threadResume error:', error);
         throw error;
       }
       // Another client owns the thread. Show its history read-only and lock the
       // composer now, rather than waiting for a send to fail.
       console.warn('[CodexService] thread is owned by another client:', threadId);
-      const { thread } = await readThread({ threadId, includeTurns: true });
-      const historicalEvents = convertThreadHistoryToEvents(thread);
-      set({ ...syncThreadToStore(threadId, thread, historicalEvents) });
-      useWriterConflictStore.getState().lock(threadId);
+      try {
+        const { thread } = await readThread({ threadId, includeTurns: false });
+        const page = await historyPage(threadId);
+        if (useThreadHistory.getState().threads[threadId]?.generation !== version) return;
+        const historicalEvents = historyEvents(page, threadId);
+        useThreadHistory.getState().reset(threadId, page);
+        set({ ...syncThreadToStore(threadId, thread, historicalEvents, { activate: activate() }) });
+        useWriterConflictStore.getState().lock(threadId);
+      } catch (readError) {
+        if (useThreadHistory.getState().threads[threadId]?.generation === version)
+          useThreadHistory.getState().fail(threadId, readError);
+        throw readError;
+      }
     }
   },
   async threadFork(threadId: string) {
@@ -388,9 +433,20 @@ export const codexService = {
     try {
       const params: ThreadForkParams = {
         threadId,
+        excludeTurns: true,
       };
       const response = await threadFork(params);
-      return applyThreadMutation(set, response.thread.id, response.thread);
+      const page = await historyPage(response.thread.id);
+      useThreadHistory.getState().reset(response.thread.id, page);
+      set({
+        ...syncThreadToStore(
+          response.thread.id,
+          response.thread,
+          historyEvents(page, response.thread.id),
+          { resetCurrentTurnId: true }
+        ),
+      });
+      return response.thread;
     } catch (error: unknown) {
       console.error('[CodexService] threadFork error:', error);
       throw error;

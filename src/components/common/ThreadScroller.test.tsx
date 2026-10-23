@@ -67,4 +67,27 @@ describe('ThreadScroller', () => {
 
     expect(screen.queryByRole('navigation', { name: 'User messages' })).toBeNull();
   });
+
+  it('loads history only on user navigation and holds the reading anchor on prepend', async () => {
+    const load = vi.fn(async () => {});
+    let anchorTop = 20;
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const top = this.dataset.messageId === 'u1' ? anchorTop : 0;
+      return { top, bottom: top + 50, height: 50, left: 0, right: 0, width: 0 } as DOMRect;
+    });
+    const { container, rerender } = render(<ThreadScroller turns={turns} onLoadOlder={load} historyVersion={0}>
+      <MessageScrollerItem messageId="u1">Message</MessageScrollerItem>
+    </ThreadScroller>);
+    const viewport = container.querySelector('[data-slot="message-scroller-viewport"]') as HTMLDivElement;
+    expect(load).not.toHaveBeenCalled();
+    fireEvent.wheel(viewport, { deltaY: -100 });
+    await waitFor(() => expect(load).toHaveBeenCalledTimes(1));
+    anchorTop = 220;
+    rerender(<ThreadScroller turns={turns} onLoadOlder={load} historyVersion={1}>
+      <MessageScrollerItem messageId="old">Older</MessageScrollerItem>
+      <MessageScrollerItem messageId="u1">Message</MessageScrollerItem>
+    </ThreadScroller>);
+    expect(viewport.scrollTop).toBe(200);
+  });
+
 });

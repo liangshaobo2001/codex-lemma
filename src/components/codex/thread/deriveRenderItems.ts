@@ -2,6 +2,7 @@ import type { ServerNotification } from '@/bindings';
 import { isStepItem, type StepItem } from '../items/stepItems';
 import type { StepEntry } from '../items/ThreadStepChain';
 import { isHiddenWarning } from '../stores/hiddenWarnings';
+import { historyEventKey } from '../stores/threadHistory';
 
 /**
  * Intermediate render item: a raw event, a chain of consecutive steps, or a finished
@@ -174,7 +175,7 @@ export function deriveRenderItems(events: ServerNotification[]): RenderItem[] {
         // existing step instead of moving it below messages that arrived meanwhile.
         const completed = completedSteps.get(key);
         if (!chain || chain.turnId !== turnId) {
-          chain = { kind: 'chain', key: `chain-${i}`, turnId, steps: [] };
+          chain = { kind: 'chain', key: `chain-${turnId}-${item.id}`, turnId, steps: [] };
           items.push(chain);
         }
         // A step that never completed is only live while its turn is still open.
@@ -201,6 +202,6 @@ export function codexUserTurns(items: RenderItem[]): { id: string; text: string 
     const text = started.content
       .flatMap((input) => (input.type === 'text' ? [input.text] : []))
       .join('');
-    return [{ id: `event-${item.index}`, text: text || '(image)' }];
+    return [{ id: historyEventKey(item.event, item.index), text: text || '(image)' }];
   });
 }

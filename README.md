@@ -14,7 +14,7 @@ It is a focused fork of [Codexia v0.58.0](https://github.com/milisp/codexia/tree
 
 ## What is included
 
-- Codex conversations with streamed output, command approvals, tool activity, and subagent views.
+- Codex conversations with streamed output, command approvals, tool activity, and subagent views. Large histories open with recent messages first and load older records on demand.
 - Custom provider and model settings, plus a model selector in the composer.
 - Project workspaces, file editing and previews, Git diffs, and an integrated terminal.
 - MCP connectors, skills, scheduled tasks, todos, and local usage statistics.

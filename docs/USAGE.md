@@ -36,3 +36,9 @@ Timing uses the bundled Codex CLI's HTTP Responses observation events, received 
 - Back up configuration before changing providers or resetting data. Do not delete the entire Codex home as a routine fix.
 - Historical-turn loading may be unavailable with some app-server versions; live events and resume behavior are separate paths.
 - Report problems with the Lemma version, bundled CLI version, endpoint software/version, reproduction steps, and redacted logs. Never post keys or private conversations.
+
+## Large histories
+
+Lemma opens recent records first. Scroll to the top or choose **Load older messages** to retrieve another page. The view keeps three pages; **Load newer messages** and **Jump to latest** return toward current activity. The displayed window does not limit the model context or remove stored messages.
+
+A page holds up to 40 records. A very large record is shown as a bounded preview; **View full record** opens its exact stored JSON in 64 KiB text pages. This keeps large tool results out of the main render tree. Legacy Codex histories still require engine-side parsing of a turn, so older machines can show a loading indicator while that finishes.

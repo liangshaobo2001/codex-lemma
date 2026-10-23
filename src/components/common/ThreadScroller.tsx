@@ -1,6 +1,7 @@
 import { cn } from 'cn';
-import { type ReactNode, type RefObject, useEffect, useRef } from 'react';
+import { type ReactNode, type RefObject, useEffect, useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import {
   MessageScroller,
@@ -97,9 +98,13 @@ const INTENT_WINDOW_MS = 300;
 function StickToBottom({
   viewportRef,
   contentRef,
+  pagingRef,
+  followingRef,
 }: {
   viewportRef: RefObject<HTMLDivElement | null>;
   contentRef: RefObject<HTMLDivElement | null>;
+  pagingRef: RefObject<boolean>;
+  followingRef: RefObject<boolean>;
 }) {
   const { scrollToEnd } = useMessageScroller();
 
@@ -108,7 +113,6 @@ function StickToBottom({
     const content = contentRef.current;
     if (!viewport || !content || typeof ResizeObserver === 'undefined') return;
 
-    let stick = true;
     let intentAt = 0;
     let dragging = false;
     let frame = 0;
@@ -124,13 +128,16 @@ function StickToBottom({
     };
     const onScroll = () => {
       const gap = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
-      if (gap <= BOTTOM_SLACK) stick = true;
-      else if (dragging || Date.now() - intentAt < INTENT_WINDOW_MS) stick = false;
+      if (pagingRef.current) return;
+      if (gap <= BOTTOM_SLACK) followingRef.current = true;
+      else if (dragging || Date.now() - intentAt < INTENT_WINDOW_MS) followingRef.current = false;
     };
     const follow = new ResizeObserver(() => {
-      if (!stick) return;
+      if (!followingRef.current || pagingRef.current) return;
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => scrollToEnd({ behavior: 'auto' }));
+      frame = requestAnimationFrame(() => {
+        if (followingRef.current && !pagingRef.current) scrollToEnd({ behavior: 'auto' });
+      });
     });
 
     viewport.addEventListener('wheel', markIntent, { passive: true });
@@ -150,7 +157,7 @@ function StickToBottom({
       window.removeEventListener('pointerup', onPointerUp);
       viewport.removeEventListener('scroll', onScroll);
     };
-  }, [viewportRef, contentRef, scrollToEnd]);
+  }, [viewportRef, contentRef, pagingRef, followingRef, scrollToEnd]);
 
   return null;
 }
@@ -163,6 +170,12 @@ type ThreadScrollerProps = {
   contentClassName?: string;
   /** Show the jump-to-latest button. */
   jumpButton?: boolean;
+  onLoadOlder?: () => Promise<void>;
+  onLoadNewer?: () => Promise<void>;
+  historyLoading?: boolean;
+  historyError?: string | null;
+  historyVersion?: unknown;
+  manualScroll?: boolean;
 };
 
 /**
@@ -176,21 +189,166 @@ export function ThreadScroller({
   className,
   contentClassName,
   jumpButton = true,
+  onLoadOlder,
+  onLoadNewer,
+  historyLoading = false,
+  historyError,
+  historyVersion,
+  manualScroll = false,
 }: ThreadScrollerProps) {
+  const { t } = useTranslation('thread');
+  const intentRef = useRef(0);
   const viewportRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const pagingRef = useRef(false);
+  const followingRef = useRef(true);
+  const anchorRef = useRef<{ id: string; top: number } | null>(null);
+  const inFlightRef = useRef(false);
+  const rememberAnchor = () => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const top = viewport.getBoundingClientRect().top;
+    const nodes = Array.from(viewport.querySelectorAll<HTMLElement>('[data-message-id]'));
+    const anchor = nodes.find(
+      (node) => node.getBoundingClientRect().height > 0 && node.getBoundingClientRect().bottom > top
+    );
+    anchorRef.current = anchor?.dataset.messageId
+      ? { id: anchor.dataset.messageId, top: anchor.getBoundingClientRect().top - top }
+      : null;
+  };
+  const load = async (callback: (() => Promise<void>) | undefined) => {
+    if (!callback || historyLoading || inFlightRef.current) return;
+    inFlightRef.current = true;
+    pagingRef.current = true;
+    followingRef.current = false;
+    rememberAnchor();
+    try {
+      await callback();
+    } catch {
+      /* The history controller exposes actionable errors. */
+    } finally {
+      inFlightRef.current = false;
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          const viewport = viewportRef.current;
+          const anchor = anchorRef.current;
+          if (viewport && anchor) {
+            const element = Array.from(
+              viewport.querySelectorAll<HTMLElement>('[data-message-id]')
+            ).find((node) => node.dataset.messageId === anchor.id);
+            if (element)
+              viewport.scrollTop +=
+                element.getBoundingClientRect().top -
+                viewport.getBoundingClientRect().top -
+                anchor.top;
+          }
+          anchorRef.current = null;
+          pagingRef.current = false;
+        })
+      );
+    }
+  };
+  useLayoutEffect(() => {
+    if (historyVersion === undefined) return;
+    const viewport = viewportRef.current;
+    const anchor = anchorRef.current;
+    if (!viewport || !anchor) return;
+    const element = Array.from(viewport.querySelectorAll<HTMLElement>('[data-message-id]')).find(
+      (node) => node.dataset.messageId === anchor.id
+    );
+    if (element)
+      viewport.scrollTop +=
+        element.getBoundingClientRect().top - viewport.getBoundingClientRect().top - anchor.top;
+    if (!inFlightRef.current) anchorRef.current = null;
+  }, [historyVersion]);
   return (
-    <MessageScrollerProvider autoScroll>
+    <MessageScrollerProvider
+      autoScroll={!manualScroll}
+      defaultScrollPosition={manualScroll ? 'start' : 'end'}
+    >
       <MessageScroller className={cn('@container/thread', className)}>
-        <MessageScrollerViewport ref={viewportRef}>
+        <MessageScrollerViewport
+          ref={viewportRef}
+          style={onLoadOlder || onLoadNewer ? { overflowAnchor: 'none' } : undefined}
+          onWheel={(event) => {
+            intentRef.current = Date.now();
+            const viewport = event.currentTarget;
+            if (event.deltaY < 0 && viewport.scrollTop <= 160) load(onLoadOlder);
+            if (
+              event.deltaY > 0 &&
+              viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= 160
+            )
+              load(onLoadNewer);
+          }}
+          onPointerDown={(event) => {
+            intentRef.current = (event.target as HTMLElement).closest('button') ? 0 : Date.now();
+          }}
+          onPointerMove={(event) => {
+            if (event.buttons === 1) intentRef.current = Date.now();
+          }}
+          onTouchMove={() => {
+            intentRef.current = Date.now();
+          }}
+          onKeyDown={(event) => {
+            intentRef.current = Date.now();
+            if (
+              event.key === 'Home' ||
+              (event.key === 'PageUp' && event.currentTarget.scrollTop <= 160)
+            )
+              load(onLoadOlder);
+            if (event.key === 'End' && onLoadNewer) load(onLoadNewer);
+          }}
+          onScroll={(event) => {
+            // Pointer/touch scrollbar navigation also reaches these edges. Avoid
+            // auto-loading pages during the initial programmatic bottom scroll.
+            if (pagingRef.current || Date.now() - intentRef.current > 300) return;
+            const viewport = event.currentTarget;
+            if (viewport.scrollTop <= 1) load(onLoadOlder);
+            else if (viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= 1)
+              load(onLoadNewer);
+          }}
+        >
+          {(onLoadOlder || historyError || historyLoading) && (
+            <div className="flex flex-col items-center gap-1 py-2 text-sm text-muted-foreground">
+              {historyError && <span role="alert">{historyError}</span>}
+              {historyLoading && !onLoadOlder && <output>{t('history.loading')}</output>}
+              {onLoadOlder && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={historyLoading}
+                  onClick={() => load(onLoadOlder)}
+                >
+                  {historyLoading ? t('history.loading') : t('history.older')}
+                </Button>
+              )}
+            </div>
+          )}
           <MessageScrollerContent
             ref={contentRef}
             className={cn(THREAD_COLUMN, 'gap-2 py-4 *:empty:hidden', contentClassName)}
           >
             {children}
+            {onLoadNewer && (
+              <div className="flex justify-center py-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={historyLoading}
+                  onClick={() => load(onLoadNewer)}
+                >
+                  {historyLoading ? t('history.loading') : t('history.newer')}
+                </Button>
+              </div>
+            )}
           </MessageScrollerContent>
         </MessageScrollerViewport>
-        <StickToBottom viewportRef={viewportRef} contentRef={contentRef} />
+        <StickToBottom
+          viewportRef={viewportRef}
+          contentRef={contentRef}
+          pagingRef={pagingRef}
+          followingRef={followingRef}
+        />
         <TurnNavigator turns={turns} />
         {jumpButton && <MessageScrollerButton />}
       </MessageScroller>

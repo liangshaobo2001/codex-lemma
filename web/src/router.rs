@@ -23,6 +23,7 @@ use super::{
         api_git_reverse_files, api_git_stage_files, api_git_status, api_git_unstage_files,
         api_git_commit, api_git_push, api_git_has_worktree_changes, api_list_threads,
         api_delete_thread, api_rename_thread, api_thread_read, api_thread_read_state_update,
+        api_history_page, api_history_detail,
         api_turn_steer, api_turn_settings_update, api_thread_queue_add, api_thread_queue_list,
         api_thread_queue_update, api_thread_queue_delete, api_thread_queue_reorder,
         api_thread_queue_start, api_thread_goal_set, api_thread_goal_get, api_thread_goal_clear,
@@ -175,6 +176,8 @@ pub fn create_router(state: WebServerState) -> Router {
         .route("/api/codex/thread/delete", post(api_delete_thread))
         .route("/api/codex/thread/rename", post(api_rename_thread))
         .route("/api/codex/thread/read", post(api_thread_read))
+        .route("/api/codex/thread/history/page", post(api_history_page))
+        .route("/api/codex/thread/history/detail", post(api_history_detail))
         .route(
             "/api/codex/thread/readState/update",
             post(api_thread_read_state_update),

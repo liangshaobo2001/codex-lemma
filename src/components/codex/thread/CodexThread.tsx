@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { WorkSummary } from '@/components/ai-elements/WorkSummary';
 import { useCodexStore } from '@/components/codex/stores';
 import { THREAD_COLUMN, ThreadScroller } from '@/components/common';
+import { Button } from '@/components/ui/button';
 import { MessageScrollerItem } from '@/components/ui/message-scroller';
+import type { HistoryEntry } from '@/services/apiAdapt/history';
 import { EventItem } from '../items';
 import { ApprovalItem } from '../items/ApprovalItem';
 import { ElicitationItem } from '../items/ElicitationItem';
@@ -12,8 +14,11 @@ import { PermissionsItem } from '../items/PermissionsItem';
 import { RequestUserInputItem } from '../items/RequestUserInputItem';
 import { formatStepDuration } from '../items/stepItems';
 import { ThreadStepChain } from '../items/ThreadStepChain';
+import { historyEventKey, useThreadHistory } from '../stores/threadHistory';
 import { WorkingIndicator } from '../widget/WorkingIndicator';
 import { codexUserTurns, deriveRenderItems, type RenderItem } from './deriveRenderItems';
+import { HistoryRecord } from './HistoryRecord';
+import { useThreadHistoryView } from './useThreadHistoryView';
 
 interface CodexThreadProps {
   /**
@@ -33,7 +38,10 @@ export function CodexThread({ threadId }: CodexThreadProps = {}) {
   const activeThreadId = threadId ?? currentThreadId;
 
   // Get events for the active thread
-  const currentThreadEvents = activeThreadId ? events[activeThreadId] || [] : [];
+  const { history, currentThreadEvents, loadOlder, loadNewer } = useThreadHistoryView(
+    activeThreadId,
+    activeThreadId ? events[activeThreadId] : undefined
+  );
   const turnTiming = activeThreadId ? turnTimingMap[activeThreadId] : undefined;
   const retryNotice = activeThreadId ? retryNoticeMap[activeThreadId] : undefined;
   const pendingReviews = useMemo(
@@ -84,26 +92,32 @@ export function CodexThread({ threadId }: CodexThreadProps = {}) {
       }
 
       const { event, index } = item;
+      const preview = (event.params as { historyPreview?: HistoryEntry }).historyPreview;
 
       if (event.method === 'item/agentMessage/delta') {
-        seenAgentMessageDeltaItemIds.add(event.params.itemId);
+        seenAgentMessageDeltaItemIds.add(
+          JSON.stringify([event.params.turnId, event.params.itemId])
+        );
       }
 
       if (event.method === 'item/completed') {
         const completedItem = event.params.item;
         if (
           completedItem.type === 'agentMessage' &&
-          seenAgentMessageDeltaItemIds.has(completedItem.id)
+          seenAgentMessageDeltaItemIds.has(JSON.stringify([event.params.turnId, completedItem.id]))
         ) {
           continue;
         }
       }
 
       rendered.push({
-        key: `event-${index}`,
-        content: (
-          <EventItem event={event} context={{ events: currentThreadEvents, eventIndex: index }} />
-        ),
+        key: historyEventKey(event, index),
+        content:
+          event.method === 'item/completed' && activeThreadId && preview ? (
+            <HistoryRecord entry={preview} threadId={activeThreadId} />
+          ) : (
+            <EventItem event={event} context={{ events: currentThreadEvents, eventIndex: index }} />
+          ),
       });
     }
     return rendered;
@@ -113,9 +127,21 @@ export function CodexThread({ threadId }: CodexThreadProps = {}) {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 h-full">
-      <ThreadScroller turns={turns} className="flex-1" contentClassName="thread-surface">
+      <ThreadScroller
+        manualScroll
+        key={activeThreadId}
+        turns={turns}
+        className="flex-1"
+        contentClassName="thread-surface"
+        onLoadOlder={loadOlder}
+        onLoadNewer={loadNewer}
+        historyLoading={history?.loading}
+        historyError={history?.error}
+        historyVersion={history?.pages}
+      >
         {renderedEvents.map((entry) => (
           <MessageScrollerItem
+            style={{ contentVisibility: 'visible', containIntrinsicSize: 'none' }}
             key={entry.key}
             messageId={entry.key}
             scrollAnchor={anchorIds.has(entry.key)}
@@ -123,6 +149,7 @@ export function CodexThread({ threadId }: CodexThreadProps = {}) {
             {entry.content}
           </MessageScrollerItem>
         ))}
+
         <WorkingIndicator
           turnTiming={turnTiming}
           retryNotice={retryNotice}
@@ -133,6 +160,17 @@ export function CodexThread({ threadId }: CodexThreadProps = {}) {
         <PermissionsItem currentThreadId={activeThreadId} />
       </ThreadScroller>
       <div className={cn(THREAD_COLUMN, 'pb-3 empty:hidden')}>
+        {(history?.start ?? 0) > 0 && activeThreadId && (
+          <div className="flex justify-center pb-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => useThreadHistory.getState().latest(activeThreadId)}
+            >
+              {t('history.latest')}
+            </Button>
+          </div>
+        )}
         <ApprovalItem threadId={activeThreadId} />
       </div>
     </div>

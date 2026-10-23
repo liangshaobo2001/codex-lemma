@@ -215,11 +215,12 @@ pub async fn connect_codex(event_sink: Arc<dyn EventSink>) -> Result<Arc<CodexAp
                 Some(ServerMessage::Request { id, method, params }) => {
                     handle_server_request(&event_sink_clone, id, &method, params).await;
                 }
-                Some(ServerMessage::Notification { raw, .. }) => {
+                Some(ServerMessage::Notification { mut raw, .. }) => {
                     if let Some(metrics) = &request_metrics && let Ok(mut metrics) = metrics.lock() {
                         metrics.notification(&raw);
                     }
                     sync_automation_run_status(&raw);
+                    crate::history::trim_notification(&mut raw);
                     event_sink_clone.emit("codex:notification", raw);
                 }
                 None => {}

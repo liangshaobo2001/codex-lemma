@@ -7,6 +7,7 @@ pub mod env;
 pub mod protocol;
 pub mod providers;
 pub mod stats;
+pub mod history;
 mod server_request;
 pub mod utils;
 

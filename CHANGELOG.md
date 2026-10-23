@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [0.1.5] - 2026-10-23
+
+- Open large sessions with metadata-only resume and bounded history pages instead of hydrating the full transcript. Load older records on upward scrolling; keep at most three history pages in the view and reload evicted pages when returning.
+- Bound large record previews by text and structure, with a separate paged full-record viewer. Preserve source records and model context.
+- Preserve reading position, in-flight text, current selection, retry state, and stop controls across history loads. Remove duplicate history graphs from completion notifications.
+- Verify both legacy and paginated Codex history, including a synthetic 153 MiB session with 399 turns.
+
 ## [0.1.4] - 2026-10-23
 
 - Use neutral controls, interruption/error states, and notifications in both themes, with red limited to small trash icons; preserve diff and source-content colors.

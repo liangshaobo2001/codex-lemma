@@ -199,6 +199,15 @@ export const zh = {
     noResults: '未找到匹配的技能',
   },
   thread: {
+    history: {
+      older: '加载更早的消息',
+      newer: '加载较新的消息',
+      latest: '回到最新消息',
+      loading: '加载中…',
+      fullRecord: '查看完整记录',
+      previous: '上一页',
+      next: '下一页',
+    },
     common: {
       cancel: '取消',
       submit: '提交',

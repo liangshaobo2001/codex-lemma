@@ -201,6 +201,15 @@ export const en = {
     noResults: 'No matching skills found',
   },
   thread: {
+    history: {
+      older: 'Load older messages',
+      newer: 'Load newer messages',
+      latest: 'Jump to latest',
+      loading: 'Loading…',
+      fullRecord: 'View full record',
+      previous: 'Previous page',
+      next: 'Next page',
+    },
     common: {
       cancel: 'Cancel',
       submit: 'Submit',

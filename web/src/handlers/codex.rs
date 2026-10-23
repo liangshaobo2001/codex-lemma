@@ -32,8 +32,12 @@ pub(crate) async fn api_start_thread(
 
 pub(crate) async fn api_resume_thread(
     AxumState(state): AxumState<WebServerState>,
-    Json(params): Json<Value>,
+    Json(mut params): Json<Value>,
 ) -> Result<Json<Value>, ErrorResponse> {
+    if let Some(object) = params.as_object_mut() {
+        object.insert("excludeTurns".into(), json!(true));
+        object.remove("initialTurnsPage");
+    }
     let result = require_codex(&state)?
         .codex
         .send_request("thread/resume", params)
@@ -42,10 +46,30 @@ pub(crate) async fn api_resume_thread(
     Ok(Json(result))
 }
 
+pub(crate) async fn api_history_page(
+    AxumState(state): AxumState<WebServerState>,
+    Json(params): Json<codexia_codex::history::PageParams>,
+) -> Result<Json<codexia_codex::history::Page>, ErrorResponse> {
+    codexia_codex::history::page(&require_codex(&state)?.codex, params)
+        .await.map(Json).map_err(to_error_response)
+}
+
+pub(crate) async fn api_history_detail(
+    AxumState(state): AxumState<WebServerState>,
+    Json(params): Json<codexia_codex::history::DetailParams>,
+) -> Result<Json<Value>, ErrorResponse> {
+    codexia_codex::history::detail(&require_codex(&state)?.codex, params)
+        .await.map(Json).map_err(to_error_response)
+}
+
 pub(crate) async fn api_fork_thread(
     AxumState(state): AxumState<WebServerState>,
-    Json(params): Json<Value>,
+    Json(mut params): Json<Value>,
 ) -> Result<Json<Value>, ErrorResponse> {
+    if let Some(object) = params.as_object_mut() {
+        object.insert("excludeTurns".into(), json!(true));
+        object.remove("initialTurnsPage");
+    }
     let result = require_codex(&state)?
         .codex
         .send_request("thread/fork", params)

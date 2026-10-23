@@ -3,6 +3,7 @@ import type { ServerNotification } from '@/bindings';
 import type { ThreadGoal, ThreadTokenUsage } from '@/bindings/v2';
 import { compactDeltaEvents } from './eventUtils';
 import { isRequestMetrics } from './requestMetrics';
+import { LIVE_EVENT_LIMIT } from './threadHistory';
 import { isTranscriptEvent } from './transcriptEvents';
 import type { CodexStore, EventsSlice, ReasoningLive, TurnTiming } from './types';
 
@@ -55,7 +56,20 @@ export const createEventsSlice: StateCreator<CodexStore, [], [], EventsSlice> = 
           ? state.events
           : {
               ...state.events,
-              [threadId]: compactDeltaEvents(filteredEvents, event),
+              [threadId]: compactDeltaEvents(
+                filteredEvents,
+                event.method === 'turn/completed'
+                  ? {
+                      ...event,
+                      params: { ...event.params, turn: { ...event.params.turn, items: [] } },
+                    }
+                  : event.method === 'thread/started'
+                    ? {
+                        ...event,
+                        params: { ...event.params, thread: { ...event.params.thread, turns: [] } },
+                      }
+                    : event
+              ).slice(-LIVE_EVENT_LIMIT),
             };
 
       let threadStatusMap = state.threadStatusMap;
