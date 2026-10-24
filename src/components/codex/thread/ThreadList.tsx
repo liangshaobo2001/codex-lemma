@@ -41,13 +41,13 @@ import { toast } from '@/components/ui/use-toast';
 import { threadInScope } from '@/features/projects/projectModel';
 import { useServerProjectsStore } from '@/features/projects/useServerProjectsStore';
 import { isDesktopTauri } from '@/hooks/runtime';
-import { THREADS_CHANGED_EVENT } from '@/hooks/useGlobalShortcuts';
 import { archiveThread, deleteThread, listThreads, renameThread } from '@/services/apiAdapt';
 import { gitRemoveWorktree } from '@/services/apiAdapt/git';
 import { codexService } from '@/services/codexService';
 import { setThreadReadState } from '@/services/threadReadState';
 import { useAgentCenterStore, useLayoutStore } from '@/stores';
 import { usePinStore } from '@/stores/usePinStore';
+import { useThreadVisibilityStore } from '@/stores/useThreadVisibilityStore';
 import { useWorkspaceStore } from '@/stores/useWorkspaceStore';
 import { formatThreadAge } from '@/utils/formatThreadAge';
 
@@ -103,6 +103,8 @@ export function ThreadList({ cwd: cwdProp, projectId, all = false }: ThreadListP
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [pressedThreadId, setPressedThreadId] = useState<string | null>(null);
 
+  const visibility = useThreadVisibilityStore((s) => s.entries);
+  const lifecycleVersion = useThreadVisibilityStore((s) => s.reloadVersion);
   const nextCursor = response.nextCursor;
 
   // A freshly started thread is not in the state DB yet, so the backend list
@@ -115,10 +117,11 @@ export function ThreadList({ cwd: cwdProp, projectId, all = false }: ThreadListP
         (all || (byProject ? threadInScope(t, projectId ?? null) : t.cwd === cwd)) &&
         !seen.has(t.id)
     );
-    if (live.length === 0) return response.data;
+    const visible = [...live, ...response.data].filter((t) => !visibility[t.id]?.hidden);
+    if (live.length === 0) return visible;
     const key = sortKey === 'created_at' ? 'createdAt' : 'updatedAt';
-    return [...live, ...response.data].sort((a, b) => b[key] - a[key]);
-  }, [response.data, storeThreads, all, byProject, projectId, cwd, sortKey]);
+    return visible.sort((a, b) => b[key] - a[key]);
+  }, [response.data, storeThreads, visibility, all, byProject, projectId, cwd, sortKey]);
 
   // --- Thread loading (search + sort delegated to backend) ---
 
@@ -161,15 +164,17 @@ export function ThreadList({ cwd: cwdProp, projectId, all = false }: ThreadListP
     return () => {
       cancelled = true;
     };
-  }, [scopeKey, scopeParams, sortKey, providerFilter, refreshCounter, threadsVersion]);
+  }, [
+    scopeKey,
+    scopeParams,
+    sortKey,
+    providerFilter,
+    refreshCounter,
+    threadsVersion,
+    lifecycleVersion,
+  ]);
 
   const refresh = useCallback(() => setRefreshCounter((n) => n + 1), []);
-
-  // Shortcuts (e.g. archive chat) change the list from outside this component.
-  useEffect(() => {
-    window.addEventListener(THREADS_CHANGED_EVENT, refresh);
-    return () => window.removeEventListener(THREADS_CHANGED_EVENT, refresh);
-  }, [refresh]);
 
   // When a new thread is created in the store (e.g. after threadStart),
   // refresh the list so the sidebar reflects it immediately.
@@ -285,12 +290,9 @@ export function ThreadList({ cwd: cwdProp, projectId, all = false }: ThreadListP
         toast.error(t('threadList.deleteFailed'), { description: String(err) });
         return;
       }
-      if (currentThreadId === threadId) {
-        await codexService.setCurrentThread(null);
-      }
       refresh();
     },
-    [currentThreadId, refresh, t]
+    [refresh, t]
   );
 
   const handleLoadMore = useCallback(async () => {

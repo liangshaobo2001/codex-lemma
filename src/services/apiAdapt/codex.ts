@@ -89,6 +89,7 @@ import type {
   FrontendProviderModels,
   ProviderPreset,
 } from '@/components/codex/types';
+import { withThreadLifecycle } from '@/services/threadLifecycle';
 import { getJson, postJson, postJsonWithOptions, postNoContent } from './shared';
 
 export * from './mcp';
@@ -185,15 +186,21 @@ export async function listThreads(params: ThreadListParams) {
 }
 
 export async function archiveThread(threadId: ThreadId) {
-  return await postJson('/api/codex/thread/archive', { threadId });
+  return await withThreadLifecycle(threadId, 'archive', () =>
+    postJsonWithOptions('/api/codex/thread/archive', { threadId }, { suppressToast: true })
+  );
 }
 
 export async function unarchiveThread(threadId: ThreadId) {
-  return await postJson('/api/codex/thread/unarchive', { threadId });
+  return await withThreadLifecycle(threadId, 'unarchive', () =>
+    postJsonWithOptions('/api/codex/thread/unarchive', { threadId }, { suppressToast: true })
+  );
 }
 
 export async function deleteThread(threadId: ThreadId) {
-  return await postJson('/api/codex/thread/delete', { threadId });
+  return await withThreadLifecycle(threadId, 'delete', () =>
+    postJsonWithOptions('/api/codex/thread/delete', { threadId }, { suppressToast: true })
+  );
 }
 
 export async function renameThread(threadId: ThreadId, name: string) {

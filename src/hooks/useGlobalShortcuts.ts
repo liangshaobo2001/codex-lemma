@@ -4,12 +4,8 @@ import { toast } from '@/components/ui/use-toast';
 import { isMacPlatform, resolveShortcut, type ShortcutId } from '@/hooks/keymap';
 import { i18n } from '@/lib/i18n';
 import { archiveThread } from '@/services/apiAdapt';
-import { codexService } from '@/services/codexService';
 import { setThreadReadState } from '@/services/threadReadState';
 import { useLayoutStore } from '@/stores';
-
-/** Fired after a shortcut changes the thread list so sidebar lists reload. */
-export const THREADS_CHANGED_EVENT = 'codexia:threads-changed';
 
 /** The Codex thread the user is looking at. */
 function currentCodexThreadId(): string | null {
@@ -26,10 +22,6 @@ async function archiveCurrentThread() {
     toast.error(i18n.t('app:errors.archiveFailed'), { description: String(err) });
     return;
   }
-  if (useCodexStore.getState().currentThreadId === threadId) {
-    await codexService.setCurrentThread(null);
-  }
-  window.dispatchEvent(new Event(THREADS_CHANGED_EVENT));
 }
 
 function toggleTerminal() {

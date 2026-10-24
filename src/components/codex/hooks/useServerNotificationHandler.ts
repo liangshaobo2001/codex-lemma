@@ -8,6 +8,7 @@ import {
 } from '@/components/codex/stores';
 import { useServerProjectsStore } from '@/features/projects/useServerProjectsStore';
 import { allowSleep, preventSleep } from '@/services/apiAdapt';
+import { confirmThreadLifecycle } from '@/services/threadLifecycle';
 import { reconcileThreadModel } from '@/services/threadModelService';
 import { playBeep } from '@/utils/beep';
 import { shouldPlayCompletionBeep } from './beepOnCompletion';
@@ -35,6 +36,21 @@ export function useServerNotificationHandler(
         threadId = payload.params.thread.id;
       } else if ('threadId' in payload.params) {
         threadId = payload.params.threadId;
+      }
+
+      if (
+        method === 'thread/archived' ||
+        method === 'thread/deleted' ||
+        method === 'thread/unarchived'
+      ) {
+        const operation =
+          method === 'thread/archived'
+            ? 'archive'
+            : method === 'thread/deleted'
+              ? 'delete'
+              : 'unarchive';
+        confirmThreadLifecycle(payload.params.threadId, operation);
+        return;
       }
 
       if (method === 'thread/readState/changed') {

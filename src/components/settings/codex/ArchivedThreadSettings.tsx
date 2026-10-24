@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ThreadId } from '@/bindings';
-import type { Thread, ThreadListParams, ThreadListResponse } from '@/bindings/v2';
-import { modelProviders } from '@/components/codex/constants';
+import type { ThreadListParams, ThreadListResponse } from '@/bindings/v2';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { listThreads, unarchiveThread } from '@/services/apiAdapt';
+import { useThreadVisibilityStore } from '@/stores/useThreadVisibilityStore';
 import { formatThreadAge } from '@/utils/formatThreadAge';
 import { getFilename } from '@/utils/getFilename';
 
@@ -22,7 +22,12 @@ export function ArchivedThreadSettings() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const threads = response.data;
+  const visibility = useThreadVisibilityStore((s) => s.entries);
+  const lifecycleVersion = useThreadVisibilityStore((s) => s.reloadVersion);
+  const threads = response.data.filter((thread) => {
+    const operation = visibility[thread.id]?.operation;
+    return operation !== 'unarchive' && operation !== 'delete';
+  });
 
   const loadArchivedThreads = useCallback(async () => {
     setIsLoading(true);
@@ -31,7 +36,7 @@ export function ArchivedThreadSettings() {
       const params: ThreadListParams = {
         cursor: null,
         limit: 50,
-        modelProviders: modelProviders,
+        modelProviders: [],
         archived: true,
         useStateDbOnly: true,
       };
@@ -45,26 +50,15 @@ export function ArchivedThreadSettings() {
     }
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: confirmed lifecycle changes reload this list
   useEffect(() => {
     void loadArchivedThreads();
-  }, [loadArchivedThreads]);
+  }, [loadArchivedThreads, lifecycleVersion]);
 
   const handleUnarchive = useCallback(async (threadId: ThreadId) => {
-    let backupData: Thread[] = [];
-
-    setResponse((prev) => {
-      backupData = prev.data || [];
-      return {
-        ...prev,
-        data: backupData.filter((thread) => thread.id !== threadId),
-      };
-    });
-
     try {
       await unarchiveThread(threadId);
     } catch (err) {
-      setResponse((prev) => ({ ...prev, data: backupData }));
-
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
     }

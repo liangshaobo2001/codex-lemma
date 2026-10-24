@@ -264,7 +264,7 @@ function ProviderFormDialog({
                     className="h-8"
                     inputMode="numeric"
                     value={row.contextWindow}
-                    placeholder="128000"
+                    placeholder={t('modelsPage.contextDefault')}
                     onChange={(e) => updateRow(index, { contextWindow: e.target.value })}
                   />
                   <Button

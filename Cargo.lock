@@ -823,7 +823,7 @@ dependencies = [
 
 [[package]]
 name = "codex-lemma"
-version = "0.1.11"
+version = "0.1.12"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -891,7 +891,7 @@ dependencies = [
 
 [[package]]
 name = "codexia-automation"
-version = "0.1.11"
+version = "0.1.12"
 dependencies = [
  "async-trait",
  "chrono",
@@ -910,7 +910,7 @@ dependencies = [
 
 [[package]]
 name = "codexia-codex"
-version = "0.1.11"
+version = "0.1.12"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -939,7 +939,7 @@ dependencies = [
 
 [[package]]
 name = "codexia-db"
-version = "0.1.11"
+version = "0.1.12"
 dependencies = [
  "anyhow",
  "chrono",
@@ -953,7 +953,7 @@ dependencies = [
 
 [[package]]
 name = "codexia-git"
-version = "0.1.11"
+version = "0.1.12"
 dependencies = [
  "anyhow",
  "gix",
@@ -965,7 +965,7 @@ dependencies = [
 
 [[package]]
 name = "codexia-shared"
-version = "0.1.11"
+version = "0.1.12"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1004,7 +1004,7 @@ dependencies = [
 
 [[package]]
 name = "codexia-web"
-version = "0.1.11"
+version = "0.1.12"
 dependencies = [
  "anyhow",
  "async-trait",

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [0.1.12] - 2026-10-24
+
+- Archive and delete chats immediately across sidebar groups and pins, with safe rollback on failure. Keep stale list responses from restoring removed chats and preserve newer user navigation.
+- Apply shared server lifecycle notifications and keyboard/project archive actions consistently; refresh restored chats without reloading the window. Include custom-provider chats in Archived Threads.
+- Replace the misleading fixed context-window placeholder with an explicit model-default label. Saving inherited values keeps them unset.
+
 ## [0.1.11] - 2026-10-24
 
 - Vendor the exact MIT-licensed codex-finder revision already pinned by the project, so fresh and release builds no longer depend on its unavailable Git repository. Preserve original source, license and provenance.

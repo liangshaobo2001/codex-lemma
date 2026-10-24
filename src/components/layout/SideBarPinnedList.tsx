@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { codexService } from '@/services/codexService';
 import { useAgentCenterStore, useLayoutStore } from '@/stores';
 import { type PinnedItem, usePinStore } from '@/stores/usePinStore';
+import { useThreadVisibilityStore } from '@/stores/useThreadVisibilityStore';
 import { useWorkspaceStore } from '@/stores/useWorkspaceStore';
 import { getFilename } from '@/utils/getFilename';
 import { SideBarSection } from './SideBarSection';
@@ -13,7 +14,10 @@ import { SideBarSection } from './SideBarSection';
 export function SideBarPinnedList() {
   const { t } = useTranslation('app');
   // Pins of other agents (Claude Code) from older builds are left alone and not shown.
-  const pinned = usePinStore((s) => s.pinned).filter((item) => item.kind === 'codex');
+  const visibility = useThreadVisibilityStore((s) => s.entries);
+  const pinned = usePinStore((s) => s.pinned).filter(
+    (item) => item.kind === 'codex' && !visibility[item.id]?.hidden
+  );
   const unpin = usePinStore((s) => s.unpin);
   const { setCwd } = useWorkspaceStore();
   const { setView } = useLayoutStore();
