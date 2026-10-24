@@ -6,6 +6,8 @@
 
 Codex Lemma 是一个开源的 Windows 桌面 Codex CLI 图形界面。对话、模型切换、文件编辑、Git 差异和终端放在同一个工作区中，可连接自己部署的本机模型端点。
 
+**本机优先，源码公开。** 桌面应用在你的电脑上运行，源码可供检查与自行构建；没有 Lemma 维护者的遥测服务，也不会自动检查更新。模型端点和集成由你选择，相关联网行为见[隐私说明](docs/PRIVACY.md)。
+
 项目基于 [Codexia v0.58.0](https://github.com/milisp/codexia/tree/v0.58.0) 分叉，使用 React 和 Tauri。这是独立社区项目，与 OpenAI 无隶属关系。
 
 ![Codex Lemma 工作区](docs/images/workspace-demo.jpg)
