@@ -76,7 +76,7 @@ export function AppSideBar() {
           <div className="flex-1 min-w-0 overflow-hidden">
             <UserInfo />
           </div>
-          {/* Local fork: no updater. It would install upstream Codexia over this build. */}
+          {/* Manual updates are in Settings; never check for updates from the sidebar. */}
         </SidebarFooter>
       </Sidebar>
 

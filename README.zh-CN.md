@@ -6,7 +6,7 @@
 
 Codex Lemma 是一个开源的 Windows 桌面 Codex CLI 图形界面。对话、模型切换、文件编辑、Git 差异和终端放在同一个工作区中，可连接自己部署的本机模型端点。
 
-**本机优先，源码公开。** 桌面应用在你的电脑上运行，源码可供检查与自行构建；没有 Lemma 维护者的遥测服务，也不会自动检查更新。模型端点和集成由你选择，相关联网行为见[隐私说明](docs/PRIVACY.md)。
+**本机优先，源码公开。** 桌面应用在你的电脑上运行，源码可供检查与自行构建；没有 Lemma 维护者的遥测服务。更新器仅在点击“检查更新”后访问 GitHub，启动、打开设置和后台定时均不会检查更新。模型端点和集成由你选择，相关联网行为见[隐私说明](docs/PRIVACY.md)。
 
 项目基于 [Codexia v0.58.0](https://github.com/milisp/codexia/tree/v0.58.0) 分叉，使用 React 和 Tauri。这是独立社区项目，与 OpenAI 无隶属关系。
 
@@ -49,8 +49,10 @@ Lemma 自身元数据保存在 `%USERPROFILE%\.codex-lemma`；WebView 数据位�
 
 ## 首发范围
 
-0.1.0 为 Windows x64 首发版本，尚未签名；macOS/Linux 安装包、自动更新及远程访问不在本次验证范围内。部分功能依赖所附 CLI 与模型端点的支持，历史轮次读取也可能受 CLI 的 app-server API 限制。
+目前支持 Windows x64。“设置 → 通用”提供手动更新，下载和安装分别点击，安装包通过更新签名验证。macOS/Linux 安装包、后台自动更新及远程访问不在验证范围内。Windows 程序尚无 Authenticode 签名，更新签名不会消除 Unknown Publisher 提示。部分功能依赖所附 CLI 与模型端点的支持，历史轮次读取也可能受 CLI 的 app-server API 限制。
 
 源码构建与验证见 [CONTRIBUTING.md](CONTRIBUTING.md)，打包发布见[发布说明](docs/RELEASING.md)，改动见 [CHANGELOG.md](CHANGELOG.md)。
 
 应用使用 MIT 许可证，保留原 Codexia 版权声明。随附的 Codex CLI 使用 Apache-2.0，附带其 LICENSE 和 NOTICE。见 [LICENSE](LICENSE) 和[第三方声明](THIRD_PARTY_NOTICES.md)。
+
+“设置 → 模型”可单独选择自动审批的提供商、模型、上下文预算与思考档位，主模型仍按会话选择。审核配置重启后生效；订阅和签名认证提供商需保留默认审核配置。详见[审核模型配置](docs/APPROVAL_REVIEW.md)。

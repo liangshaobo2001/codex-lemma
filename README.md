@@ -6,7 +6,7 @@
 
 Codex Lemma is an open-source Windows desktop workspace for Codex CLI. It puts conversations, model selection, files, Git changes, and a terminal in one GUI, with custom endpoints for locally hosted models.
 
-**Local-first and open source.** The desktop app runs on your computer, and its source is available to inspect and build. There is no Lemma-maintainer telemetry service or automatic update checker. You choose the model endpoint and integrations; their network activity is described in [privacy](docs/PRIVACY.md).
+**Local-first and open source.** The desktop app runs on your computer, and its source is available to inspect and build. There is no Lemma-maintainer telemetry service. The updater checks GitHub only when you click **Check for updates**; it does not check at startup, when settings open, or on a timer. You choose the model endpoint and integrations; their network activity is described in [privacy](docs/PRIVACY.md).
 
 It is a focused fork of [Codexia v0.58.0](https://github.com/milisp/codexia/tree/v0.58.0), built with React and Tauri. Lemma is an independent community project, unaffiliated with OpenAI.
 
@@ -53,10 +53,12 @@ New installs default to **Ask for approval**: workspace operations use the sandb
 
 ## Current scope
 
-Version 0.1.0 is the initial Windows x64 release. macOS/Linux packages, automatic updates, and remote access are outside this release's tested scope. The app is unsigned. Some Codex features depend on the bundled CLI and provider; a successful greeting does not establish full tool compatibility. Historical-turn loading can be limited by the CLI's app-server API.
+Windows x64 is the supported desktop target. Settings → General includes manual, signed updates; downloading and installation each require a separate click. macOS/Linux packages, background automatic updates, and remote access are outside the tested scope. The Windows executable is not Authenticode-signed; updater signatures do not remove the Unknown Publisher prompt. Some Codex features depend on the bundled CLI and provider; a successful greeting does not establish full tool compatibility. Historical-turn loading can be limited by the CLI's app-server API.
 
 ## Development and attribution
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for build and validation instructions, [CHANGELOG.md](CHANGELOG.md) for Lemma changes, and [release instructions](docs/RELEASING.md) for packaging.
 
 The application is MIT licensed; original Codexia copyright is preserved in [LICENSE](LICENSE). The bundled Codex CLI is Apache-2.0 and carries its own LICENSE and NOTICE. See [third-party notices](THIRD_PARTY_NOTICES.md).
+
+Approval review can use its own custom Responses provider, model, context budget and effort in Settings → Models. The main model remains a per-chat choice. Changes to the reviewer take effect after restarting Lemma; subscription/signed-auth providers require the default reviewer configuration. See [reviewer configuration](docs/APPROVAL_REVIEW.md).

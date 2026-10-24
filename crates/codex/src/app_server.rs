@@ -16,6 +16,8 @@ use codex_finder::discover_codex_command;
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 pub struct CodexAppServer {
+    pub reviewer: Arc<crate::reviewer::Runtime>,
+    pub maintenance: tokio::sync::RwLock<()>,
     pub tool_discovery: crate::tool_discovery::gateway::Gateway,
     tool_bindings: crate::tool_discovery::binding::Bindings,
     stdin: Mutex<ChildStdin>,
@@ -26,6 +28,22 @@ pub struct CodexAppServer {
 }
 
 impl CodexAppServer {
+    /// Refuse native installation when active/queued work or an unknown status remains.
+    pub async fn ensure_idle(&self) -> Result<(),String> {
+        let loaded=self.send_raw_request("thread/loaded/list",serde_json::json!({"limit":100})).await?;
+        if !loaded["nextCursor"].is_null() {return Err("Too many loaded chats to confirm that tasks are idle.".into());}
+        let threads=loaded["data"].as_array().ok_or("Cannot confirm the loaded chat list.")?;
+        for thread in threads {
+            let id=thread.as_str().ok_or("Cannot confirm the loaded chat id.")?;
+            if self.has_running_turn(id).await {return Err("Finish or stop running tasks before installing an update.".into());}
+            let read=self.send_raw_request("thread/read",serde_json::json!({"threadId":id,"includeTurns":false})).await?;
+            if read.pointer("/thread/status/type").and_then(Value::as_str)!=Some("idle") {return Err("Finish or stop running tasks before installing an update.".into());}
+            let queue=self.send_raw_request("thread/queue/list",serde_json::json!({"threadId":id,"limit":1})).await?;
+            if queue["data"].as_array().is_none_or(|items|!items.is_empty()) || !queue["nextCursor"].is_null(){return Err("Clear or finish queued tasks before installing an update.".into());}
+        }
+        Ok(())
+    }
+
     pub async fn has_running_turn(&self, thread: &str) -> bool { self.tool_bindings.busy(thread).await }
     pub async fn lock_thread_configuration(&self, thread_id: &str) -> tokio::sync::OwnedMutexGuard<()> {
         let lock = {
@@ -48,21 +66,26 @@ impl CodexAppServer {
     }
 
     pub async fn send_request(&self, method: &str, mut params: Value) -> Result<Value, String> {
+        let _maintenance=if matches!(method,"turn/start"|"thread/queue/start"|"thread/queue/add") {Some(self.maintenance.read().await)} else {None};
+        self.reviewer.guard(self,method,&params).await?;
         let prepared = if method == "thread/start" { self.tool_bindings.prepare_start(self, &mut params).await? } else { None };
         if method == "thread/resume" { self.tool_bindings.prepare_resume(self, &mut params).await?; }
         if method == "turn/start" && let Some(thread) = params["threadId"].as_str() { self.tool_bindings.starting(thread).await; }
-        let result = match self.send_raw_request(method, params.clone()).await {
+        let mut result = match self.send_raw_request(method, params.clone()).await {
             Ok(result) => result,
             Err(error) => {
                 if method == "turn/start" && let Some(thread) = params["threadId"].as_str() { self.tool_bindings.failed_start(thread).await; }
                 return Err(error);
             }
         };
+        if method=="model/list" && let Some(models)=result["data"].as_array_mut(){models.retain(|model|model["model"]!=crate::reviewer::ALIAS && model["id"]!=crate::reviewer::ALIAS);}
         if let Some(prepared) = prepared { self.tool_bindings.finish_start(self, prepared, &result).await?; }
         if method == "thread/unsubscribe" && let Some(thread) = params["threadId"].as_str() { self.tool_bindings.detached(thread).await; self.tool_discovery.closed(thread).await; }
-        if matches!(method, "thread/resume" | "thread/fork") {
-            self.tool_bindings.after_resume(self, method, &params, result).await
-        } else { Ok(result) }
+        let result=if matches!(method, "thread/resume" | "thread/fork") {
+            self.tool_bindings.after_resume(self, method, &params, result).await?
+        } else { result };
+        self.reviewer.observe(method,&params,&result).await;
+        Ok(result)
     }
 
     pub(crate) async fn send_raw_request(&self, method: &str, params: Value) -> Result<Value, String> {
@@ -190,6 +213,12 @@ pub async fn connect_codex_with_tool_policy(event_sink: Arc<dyn EventSink>, tool
         command.env(key, value);
     }
 
+    let reviewer_path=tool_policy.as_ref().and_then(|p|p.parent()).map(|p|p.join("reviewer.json")).map(Ok).unwrap_or_else(crate::reviewer::Runtime::default_path)?;
+    let reviewer=Arc::new(crate::reviewer::Runtime::prepare(reviewer_path));
+    if let Some(catalog)=&reviewer.catalog {
+        let path=toml::Value::String(catalog.path().to_string_lossy().into_owned()).to_string();
+        command.args(["-c",&format!("model_catalog_json={path}")]);
+    }
     let collector = crate::request_metrics::Collector::start(&mut command, Arc::clone(&event_sink)).await;
     let request_metrics = collector.as_ref().map(|c| Arc::clone(&c.metrics));
 
@@ -207,7 +236,10 @@ pub async fn connect_codex_with_tool_policy(event_sink: Arc<dyn EventSink>, tool
     let tool_discovery = crate::tool_discovery::gateway::Gateway::start_observed(
         Arc::clone(&event_sink), tool_policy, collector.as_ref().map(|collector| Arc::clone(&collector.metrics))
     ).await?;
+    tool_discovery.set_reviewer(reviewer.target.clone()).await;
     let client = Arc::new(CodexAppServer {
+        reviewer,
+        maintenance: tokio::sync::RwLock::new(()),
         tool_discovery,
         tool_bindings: crate::tool_discovery::binding::Bindings::default(),
         stdin: Mutex::new(stdin),

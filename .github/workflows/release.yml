@@ -53,14 +53,25 @@ jobs:
       - run: bun run validate-registry
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --workspace --locked
-      - name: Package Windows installer
+      - name: Package signed Windows installer
         shell: pwsh
-        run: ./scripts/package-release.ps1
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) { throw 'The release signing key is required.' }
+          ./scripts/package-release.ps1
+      - name: Verify packaged updater signature without installing
+        shell: pwsh
+        run: |
+          $env:LEMMA_RELEASE_VERIFY_DIR = (Resolve-Path release-assets).Path
+          cargo test -p codex-lemma --test manual_updater --locked -- --ignored packaged_installer_matches_its_signature_version_and_manifest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Publish draft with verified assets
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create $env:RELEASE_TAG --verify-tag --draft --title "Codex Lemma $env:RELEASE_TAG" --notes-file docs/RELEASE_NOTES.md release-assets/*.exe release-assets/SHA256SUMS.txt
+          gh release create $env:RELEASE_TAG --verify-tag --draft --title "Codex Lemma $env:RELEASE_TAG" --notes-file docs/RELEASE_NOTES.md release-assets/*.exe release-assets/*.sig release-assets/latest.json release-assets/SHA256SUMS.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           gh release edit $env:RELEASE_TAG --draft=false

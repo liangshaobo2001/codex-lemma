@@ -8,6 +8,7 @@ use super::types::{ErrorResponse, WebServerState};
 
 mod claude_usage;
 mod custom_models;
+mod reviewer;
 mod codex;
 mod file;
 mod git;
@@ -23,6 +24,7 @@ mod types;
 
 pub(super) use claude_usage::*;
 pub(super) use custom_models::*;
+pub(super) use reviewer::*;
 pub(super) use codex::*;
 pub(super) use file::*;
 pub(super) use git::*;

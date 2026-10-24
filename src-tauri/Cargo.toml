@@ -83,6 +83,7 @@ nucleo = { workspace = true }
 cpal = "0.15"
 whisper-rs = "0.12"
 sha2 = "0.10"
+tauri-plugin-updater = "2"
 
 # --- mobile-only: pairing is done by scanning the desktop's QR code ---
 [target.'cfg(any(target_os = "ios", target_os = "android"))'.dependencies]
@@ -101,4 +102,5 @@ objc2-av-foundation = "0.3"
 block2 = "0.6"
 
 [dev-dependencies]
+tauri = { version = "2", features = ["test"] }
 tokio-tungstenite = "0.24"

@@ -1,10 +1,8 @@
-Codex Lemma v0.1.12 makes chat archive and delete respond immediately.
+Codex Lemma v0.1.13 adds manual signed updates and separate approval-model settings.
 
-- Archive or delete from the sidebar and the chat disappears immediately, including pinned entries. Archiving the current chat opens an empty composer. If the operation fails, the entry returns without interrupting another chat or a new draft.
-- Prevent stale sidebar requests from bringing removed entries back. Keyboard shortcuts, project-wide archive and server lifecycle notifications use the same state handling.
-- Restore archived chats without refreshing the window. Archived Threads includes custom providers and handles concurrent restore failures independently.
-- Model settings clearly show when context length inherits the model default. This display correction does not change existing context limits or force new overrides.
+- Settings → General: check for updates only when clicked. Download and install are separate actions; downloads verify the package signature and its version. Installation refuses running or queued chats.
+- Settings → Models: optionally choose a different custom Responses provider/model for approval review, with its own context budget and effort. The main model stays a per-chat choice. Reviewer changes take effect after restart, and the page distinguishes saved settings from the running configuration.
+- Reviewer requests use their own provider credentials and session identity. Unsupported subscription/signed-auth main providers require manual approval or the default review configuration; no silent main-model fallback is added.
+- Shared Codex home, logins, installed plugins and model services are preserved. Real-model/GPU acceptance is deferred; validation for this release uses synthetic localhost endpoints, actual CLI approval execution/denial, budget/error handling, and signature verification tests.
 
-Validation includes component/API regression tests for pending operations, rollback, stale lists, navigation, notifications, shortcuts, concurrent restore and unchanged context inheritance, plus the full frontend suite and release checks.
-
-Install over the existing Lemma installation. Verify SHA256SUMS.txt. The Windows x64 installer includes Codex CLI 0.163.0 and license notices, requires WebView2, and remains unsigned. No automatic updater is included. Shared Codex configuration, installed plugins and model services are unchanged.
+The Windows x64 installer includes Codex CLI 0.163.0, license notices and a version-bound updater signature. The executable is not Authenticode-signed: Unknown Publisher/SmartScreen prompts may still appear. The updater makes no background checks; selected providers, plugins and other optional features retain their own network behavior. Verify SHA256SUMS.txt for a manual installation.

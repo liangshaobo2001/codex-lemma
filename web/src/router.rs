@@ -54,7 +54,7 @@ use super::{
         api_get_settings_file, api_save_settings_file, health_check, api_model_list_other,
         api_load_env_keys, api_set_env, api_list_provider_presets, api_add_model_provider,
         api_list_config_providers, api_remove_model_provider, api_custom_models_list,
-        api_custom_models_add, api_custom_models_remove,
+        api_custom_models_add, api_custom_models_remove, api_reviewer_settings, api_save_reviewer_settings,
     },
     types::WebServerState,
     websocket::{sse_handler, ws_handler},
@@ -392,6 +392,7 @@ pub fn create_router(state: WebServerState) -> Router {
         .route("/api/sleep/prevent", post(api_prevent_sleep))
         .route("/api/sleep/allow", post(api_allow_sleep))
         .route("/api/settings", get(api_get_settings_file).post(api_save_settings_file))
+        .route("/api/reviewer", get(api_reviewer_settings).post(api_save_reviewer_settings))
         .route("/api/custom-models", get(api_custom_models_list))
         .route("/api/custom-models/add", post(api_custom_models_add))
         .route("/api/custom-models/remove", post(api_custom_models_remove))

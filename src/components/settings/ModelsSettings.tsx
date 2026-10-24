@@ -22,6 +22,7 @@ import { useExternalUrl } from '@/features/plugins/hooks/useExternalUrl';
 import { addModelProvider, removeModelProvider } from '@/services/apiAdapt';
 import type { CustomModel } from '@/services/apiAdapt/customModels';
 import { useModelSettingsStore, useSettingsStore } from '@/stores/settings';
+import { ReviewerSettings } from './ReviewerSettings';
 
 /** Providers Codex has built in: never written to config.toml, listed once the user adds a model for them. */
 const BUILTIN_PROVIDERS = new Set(['ollama', 'lmstudio']);
@@ -359,6 +360,7 @@ export function ModelsSettings() {
 
   return (
     <div className="space-y-6">
+      <ReviewerSettings />
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-4 px-1">
           <div>

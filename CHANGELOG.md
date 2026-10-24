@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [0.1.13] - 2026-10-24
+
+- Add manual update checks in General settings, with separate download and installation actions, signed-version/package verification, and active/queued-task installation protection. Opening the app or settings does not check for updates.
+- Allow an independent approval-review provider, model, context budget and effort for custom Responses providers. Keep saved and process-loaded settings distinct; apply after restart without changing shared Codex configuration, logins or plugins.
+- Route approval and compaction requests with the reviewer endpoint, credentials and session identity, never main-provider credentials. Reject unsupported main providers or missing reviewer metadata instead of silently using the main model.
+- Cover allow/deny, budget exhaustion, provider failures, long input, ephemeral chats and transport isolation using synthetic endpoints and the bundled CLI. Real-model and GPU-memory acceptance remains deferred at the user's request.
+
 ## [0.1.12] - 2026-10-24
 
 - Archive and delete chats immediately across sidebar groups and pins, with safe rollback on failure. Keep stale list responses from restoring removed chats and preserve newer user navigation.
@@ -56,8 +63,8 @@
 - Hide the native long-thread compaction advisory in live and restored chats while preserving other warnings.
 
 - Collapse long user messages to a 15-line preview with expand/collapse controls, preserving full copy/edit content.
-- Keep the previous turn’s throughput visible while awaiting a new reading and remove the approximate symbol from the compact display; retain measurement details on hover.
-- Default completion sound off, including upgrades, with an opt-in switch under Settings → Codex → Task.
+- Keep the previous turnâ€™s throughput visible while awaiting a new reading and remove the approximate symbol from the compact display; retain measurement details on hover.
+- Default completion sound off, including upgrades, with an opt-in switch under Settings â†’ Codex â†’ Task.
 
 - Use regular-weight text for workspace navigation, project/chat names, and composer/toolbar controls; retain the settings typography and message emphasis.
 

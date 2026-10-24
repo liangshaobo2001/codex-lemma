@@ -3,6 +3,8 @@
 #[cfg(desktop)]
 mod commands;
 #[cfg(desktop)]
+mod updates;
+#[cfg(desktop)]
 pub mod dictation;
 #[cfg(desktop)]
 mod event_sink;
@@ -52,6 +54,7 @@ pub fn run() {
             .plugin(tauri_plugin_fs::init())
             .plugin(tauri_plugin_opener::init())
             .plugin(tauri_plugin_process::init())
+            .plugin(tauri_plugin_updater::Builder::new().build())
             .plugin(tauri_plugin_shell::init())
             .plugin(tauri_plugin_dialog::init())
             .plugin(tauri_plugin_notification::init())
@@ -72,6 +75,7 @@ pub fn run() {
             });
 
         builder
+            .manage(updates::Updates::default())
             .manage(WatchState::new())
             .manage(TerminalState::default())
             .manage(SleepState::default())
@@ -86,6 +90,9 @@ pub fn run() {
                 commands::dictation::dictation_request_permission,
                 commands::dictation::dictation_stop,
                 commands::dictation::dictation_cancel,
+                updates::check_lemma_update,
+                updates::download_lemma_update,
+                updates::install_lemma_update,
                 quit_app,
             ])
             .setup(|app| {

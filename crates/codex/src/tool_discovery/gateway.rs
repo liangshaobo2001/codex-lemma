@@ -18,6 +18,7 @@ struct Route {
     session:Arc<Mutex<relay::Session>>, status:Mutex<(String,Option<Mode>,Option<String>)>, last_model:Mutex<Option<String>>, capability_keys:Mutex<BTreeSet<u64>>,
 }
 struct Shared {
+    reviewer:RwLock<Option<crate::reviewer::Target>>,
     secret:String, client:reqwest::Client, routes:RwLock<BTreeMap<String,Arc<Route>>>,
     capabilities:Mutex<BTreeMap<u64,Capability>>,
     policy_path:std::path::PathBuf,
@@ -62,7 +63,7 @@ impl Gateway {
         let policy_path=match policy_path {Some(path)=>path,None=>store_path()?};
         let listener=tokio::net::TcpListener::bind("127.0.0.1:0").await.map_err(|_|"Could not start the local tool adapter.")?;
         let address=format!("http://{}",listener.local_addr().map_err(|e|e.to_string())?);
-        let shared=Arc::new(Shared{secret:uuid::Uuid::new_v4().simple().to_string(),
+        let shared=Arc::new(Shared{reviewer:RwLock::new(None),secret:uuid::Uuid::new_v4().simple().to_string(),
             client:reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).connect_timeout(Duration::from_secs(10)).build().map_err(|e|e.to_string())?,
             routes:RwLock::new(BTreeMap::new()),capabilities:Mutex::new(BTreeMap::new()),policy_path,events,metrics});
         let router=Router::new().route("/{secret}/{route}/responses",post(responses))
@@ -72,6 +73,7 @@ impl Gateway {
         Ok(Self{shared,address,server:server.abort_handle()})
     }
 
+    pub async fn set_reviewer(&self,target:Option<crate::reviewer::Target>) {*self.shared.reviewer.write().await=target;}
     pub async fn register(&self,thread:&str,provider:&str,base_url:&str,auth_headers:Vec<String>) -> Result<String,String> {
         let url=reqwest::Url::parse(base_url).map_err(|_|"The provider URL is invalid.")?;
         if !matches!(url.scheme(),"http"|"https") || url.host_str().is_none() || !url.username().is_empty() || url.password().is_some() || url.query().is_some() || url.fragment().is_some() {
@@ -200,9 +202,36 @@ fn endpoint_url(base:&str,suffix:&str,query:Option<&str>)->String {
     let mut url=format!("{}{suffix}",base.trim_end_matches('/'));
     if let Some(query)=query {url.push('?');url.push_str(query);}url
 }
+async fn review_route(shared:&Shared,parent:&Route,headers:&HeaderMap,body:&mut Value)->Result<(Arc<Route>,HeaderMap),String>{
+    let target=shared.reviewer.read().await.clone().ok_or("The independent reviewer is unavailable. Use manual approval.")?;
+    let child=headers.get("thread-id").and_then(|v|v.to_str().ok()).filter(|v|uuid::Uuid::parse_str(v).is_ok()).unwrap_or(&parent.thread_id);
+    let key=format!("approval-review:{}:{child}",parent.thread_id);
+    let mut routes=shared.routes.write().await;
+    let route=if let Some(route)=routes.get(&key){Arc::clone(route)}else{
+        if routes.len()>=4096{return Err("Too many reviewer connections. Reopen Lemma.".into());}
+        let selected=parent.session.lock().await.selected.clone();
+        let route=Arc::new(Route{thread_id:key.clone(),provider:target.provider.clone(),base_url:target.base_url.clone(),auth_headers:target.headers.keys().map(|k|k.as_str().to_string()).collect(),closed:AtomicBool::new(false),
+            session:Arc::new(Mutex::new(relay::Session{selected,..Default::default()})),status:Mutex::new(("waiting".into(),None,None)),last_model:Mutex::new(None),capability_keys:Mutex::new(BTreeSet::new())});
+        routes.insert(key,Arc::clone(&route));route
+    };
+    body["model"]=json!(target.model);
+    if !body["reasoning"].is_object(){body["reasoning"]=json!({});}body["reasoning"]["effort"]=json!(target.effort);
+    // Preserve CLI-generated policy, tool declarations and budgeted input verbatim.
+    // These headers are rebuilt from the target definition; none are inherited from the main provider.
+    let mut target_headers=target.headers;
+    // Provider routing/cache identifiers are generated for this review route, never copied from the main account.
+    for name in ["x-opencode-session","session-id","thread-id"] {
+        if !target_headers.contains_key(name){target_headers.insert(reqwest::header::HeaderName::from_static(name),reqwest::header::HeaderValue::from_str(&route.thread_id).map_err(|_|"Invalid review session identifier.")?);}
+    }
+    Ok((route,target_headers))
+}
 async fn responses(State(shared):State<Arc<Shared>>,Path((secret,id)):Path<(String,String)>,OriginalUri(uri):OriginalUri,headers:HeaderMap,Json(mut body):Json<Value>) -> Response {
     let Some(route)=locate(&shared,&secret,&id).await else { return StatusCode::NOT_FOUND.into_response(); };
-    let route=match request_route(&shared,route,&headers).await {Ok(route)=>route,Err(message)=>return error(StatusCode::BAD_REQUEST,&message)};
+    let reviewing=body["model"]==crate::reviewer::ALIAS;
+    if body["model"].as_str().is_some_and(|s|s.starts_with("lemma-internal-")) && !reviewing {return error(StatusCode::BAD_REQUEST,"Unknown internal reviewer model.");}
+    let (route,headers)=if reviewing {
+        match review_route(&shared,&route,&headers,&mut body).await{Ok(value)=>value,Err(message)=>return error(StatusCode::BAD_REQUEST,&message)}
+    }else{(match request_route(&shared,route,&headers).await {Ok(route)=>route,Err(message)=>return error(StatusCode::BAD_REQUEST,&message)},headers)};
     if body["stream"]!=true { return error(StatusCode::BAD_REQUEST,"The tool adapter requires a streaming Responses request."); }
     // Responses permits omitting tools when this model has no exposed tools.
     if body.get("tools").is_none() { body["tools"]=json!([]); }
@@ -211,7 +240,7 @@ async fn responses(State(shared):State<Arc<Shared>>,Path((secret,id)):Path<(Stri
         Ok(inventory)=>inventory,
         Err(message)=>{status(&shared,&route,"error",None,Some(message.clone())).await;return error(StatusCode::BAD_REQUEST,&message);}
     };
-    let endpoint=probe::Endpoint{url:endpoint_url(&route.base_url,"/responses",uri.query()),headers:forwarded_headers(&headers)};
+    let endpoint=probe::Endpoint{url:endpoint_url(&route.base_url,"/responses",if reviewing{None}else{uri.query()}),headers:forwarded_headers(&headers)};
     let observer=super::observation::Observer{thread_id:route.thread_id.clone(),usage_path:shared.policy_path.with_extension("usage.json"),events:Arc::clone(&shared.events),metrics:shared.metrics.clone()};
     let (tx,rx)=mpsc::channel::<Vec<u8>>(16);
     tokio::spawn(async move {
@@ -275,9 +304,12 @@ async fn responses(State(shared):State<Arc<Shared>>,Path((secret,id)):Path<(Stri
     ([("content-type","text/event-stream"),("cache-control","no-store")],Body::from_stream(stream)).into_response()
 }
 
-async fn compact(State(shared):State<Arc<Shared>>,Path((secret,id)):Path<(String,String)>,OriginalUri(uri):OriginalUri,headers:HeaderMap,Json(body):Json<Value>) -> Response {
+async fn compact(State(shared):State<Arc<Shared>>,Path((secret,id)):Path<(String,String)>,OriginalUri(uri):OriginalUri,headers:HeaderMap,Json(mut body):Json<Value>) -> Response {
     let Some(route)=locate(&shared,&secret,&id).await else { return StatusCode::NOT_FOUND.into_response(); };
-    match shared.client.post(endpoint_url(&route.base_url,"/responses/compact",uri.query())).headers(forwarded_headers(&headers)).json(&body).send().await {
+    let reviewing=body["model"]==crate::reviewer::ALIAS;
+    if body["model"].as_str().is_some_and(|s|s.starts_with("lemma-internal-")) && !reviewing {return error(StatusCode::BAD_REQUEST,"Unknown internal reviewer model.");}
+    let (route,headers)=if reviewing{match review_route(&shared,&route,&headers,&mut body).await{Ok(value)=>value,Err(message)=>return error(StatusCode::BAD_REQUEST,&message)}}else{(route,headers)};
+    match shared.client.post(endpoint_url(&route.base_url,"/responses/compact",if reviewing{None}else{uri.query()})).headers(forwarded_headers(&headers)).json(&body).send().await {
         Ok(mut response)=>{
             let status=response.status();let content_type=response.headers().get("content-type").cloned();
             let mut bytes=Vec::new();
@@ -361,4 +393,30 @@ mod tests {
         let seen=seen.lock().await;assert_eq!(seen.len(),3);assert_eq!(seen[0].0,"/v1/responses?api-version=fixture");assert_eq!(seen[1].0,"/v1/responses/compact?api-version=compact");assert!(seen.iter().all(|(_,auth,_)|auth=="Bearer synthetic"));
         assert_eq!(seen[0].2["tools"],json!([]));server.abort();
     }
+    #[tokio::test]
+    async fn independent_review_and_compaction_use_target_credentials_and_never_main_query_parameters(){
+        struct Sink;impl EventSink for Sink{fn emit(&self,_:&str,_:Value){}}
+        let seen=Arc::new(Mutex::new(Vec::<(String,HeaderMap,Value)>::new()));let captures=Arc::clone(&seen);
+        let upstream=Router::new().fallback(post(move|OriginalUri(uri):OriginalUri,headers:HeaderMap,Json(body):Json<Value>|{
+            let captures=Arc::clone(&captures);async move{
+                captures.lock().await.push((uri.to_string(),headers,body));
+                if uri.path().ends_with("/compact"){return Json(json!({"object":"response.compaction","output":[]})).into_response();}
+                let event=json!({"type":"response.completed","response":{"id":"synthetic","status":"completed","output":[],"usage":{"input_tokens":10,"output_tokens":0,"total_tokens":10}}});
+                ([("content-type","text/event-stream")],format!("event: response.completed\ndata: {event}\n\n")).into_response()
+            }
+        }));
+        let listener=tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();let address=listener.local_addr().unwrap();let server=tokio::spawn(async move{axum::serve(listener,upstream).await.unwrap()});
+        let directory=tempfile::tempdir().unwrap();let gateway=Gateway::start_with_policy_path(Arc::new(Sink),directory.path().join("policy.json")).await.unwrap();
+        let base=gateway.register("main-chat","main",&format!("http://{address}/main"),vec!["authorization".into()]).await.unwrap();
+        let mut target_headers=HeaderMap::new();target_headers.insert("authorization","Bearer reviewer".parse().unwrap());
+        gateway.set_reviewer(Some(crate::reviewer::Target{provider:"review".into(),model:"cheap".into(),base_url:format!("http://{address}/review"),effort:"none".into(),headers:target_headers})).await;
+        let client=reqwest::Client::new();let body=json!({"model":crate::reviewer::ALIAS,"stream":true,"input":[{"role":"user","content":"Preserve this explicit restriction."}],"reasoning":{"effort":"high"}});
+        for suffix in ["/responses?main-only=1","/responses/compact?main-only=1"]{
+            let response=client.post(format!("{base}{suffix}")).bearer_auth("main-secret").header("chatgpt-account-id","main-account").header("x-main-key","main-secret").json(&body).send().await.unwrap();assert!(response.status().is_success());let _=response.bytes().await.unwrap();
+        }
+        let captures=seen.lock().await;assert_eq!(captures.len(),2);
+        for (uri,headers,sent) in captures.iter(){assert!(uri.starts_with("/review/responses"));assert!(!uri.contains('?'));assert_eq!(headers["authorization"],"Bearer reviewer");assert!(!headers.contains_key("chatgpt-account-id"));assert!(!headers.contains_key("x-main-key"));assert_eq!(sent["model"],"cheap");assert_eq!(sent["reasoning"]["effort"],"none");assert_eq!(sent["input"],body["input"]);}
+        server.abort();
+    }
+
 }

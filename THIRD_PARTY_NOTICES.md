@@ -44,3 +44,15 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Codex model metadata and fallback prompt
+
+`crates/codex/assets/codex-0.163.0/` contains unchanged model metadata and the
+fallback prompt from openai/codex tag `rust-v0.163.0` (Apache-2.0).
+The directory includes the upstream LICENSE and NOTICE. These assets supply
+an offline baseline only when independent approval review is configured and
+no user model catalog or cached catalog is available.
+
+Source: https://github.com/openai/codex/tree/rust-v0.163.0/codex-rs/models-manager
+Git blob hashes: models.json `72a78e0eacf94103f4babda2a5245aba4ce848c1`;
+prompt.md `907ff8b877026871b088f01f4366cea36e1f02cd`.

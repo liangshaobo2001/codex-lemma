@@ -12,7 +12,9 @@ if (-not (Test-Path -LiteralPath $staged)) {
   if ($LASTEXITCODE -ne 0) { throw 'CLI staging failed.' }
 }
 if ((Get-Content $staged -Raw) -notmatch 'Codex CLI 0\.163\.0 ') { throw 'Unexpected staged Codex version; stage the pinned CLI again.' }
-bun tauri build
+$signed = -not [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)
+if ($signed) { bun tauri build --config '{"bundle":{"createUpdaterArtifacts":true}}' }
+else { bun tauri build }
 if ($LASTEXITCODE -ne 0) { throw 'Tauri build failed.' }
 $out = Join-Path $root 'release-assets'
 New-Item -ItemType Directory -Path $out -Force | Out-Null
@@ -21,5 +23,10 @@ $source = Join-Path $root "target/release/bundle/nsis/Codex Lemma_${version}_x64
 Copy-Item -LiteralPath $source -Destination (Join-Path $out $name) -Force
 $hash = (Get-FileHash -LiteralPath (Join-Path $out $name) -Algorithm SHA256).Hash.ToLowerInvariant()
 Set-Content -LiteralPath (Join-Path $out 'SHA256SUMS.txt') -Value "$hash  $name" -Encoding utf8NoBOM
+if ($signed) {
+  Copy-Item -LiteralPath ($source + '.sig') -Destination (Join-Path $out ($name + '.sig')) -Force
+  node scripts/create-update-manifest.mjs
+  if ($LASTEXITCODE -ne 0) { throw 'Signed update manifest generation failed.' }
+}
 Write-Host "Release assets: $out"
 Write-Host "SHA256: $hash"

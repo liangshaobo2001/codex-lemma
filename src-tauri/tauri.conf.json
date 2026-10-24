@@ -53,6 +53,13 @@
           "codex-lemma"
         ]
       }
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk5NzBDMDMxQUVDMDk3NUIKUldSYmw4Q3VNY0J3bVVjaEQ1OGZWU2VCWFRoT2dwR2RQQW5Pc0ozaXVud08wWkFsY0pBcm1JMGoK",
+      "requireSignedVersion": true,
+      "windows": {
+        "installMode": "passive"
+      }
     }
   },
   "bundle": {

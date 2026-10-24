@@ -23,3 +23,22 @@ The desktop UI uses a loopback HTTP/WebSocket backend (normally port 7419). It i
 For eligible custom Responses chats, a private random-port loopback adapter forwards inference requests to the configured provider. Provider credentials stay in memory in transit; the adapter does not store raw requests, prompts, tool schemas or keys. The synthetic compatibility test goes to that same provider and can incur its normal usage. It uses synthetic tools and does not execute user tools. Actual tools remain under the CLI's existing sandbox and approval policy.
 
 Chat-specific fallback tool identities are saved in `tool-policies.json` under Lemma metadata. Extra internal-request input/cache counts are saved in `tool-policies.usage.json`; these are numeric totals, not conversation content. The adapter's thread-only transport overrides do not rewrite shared Codex configuration, login or account plugin state.
+
+## Manual updates
+
+The Lemma updater makes no update request during app startup, when settings open,
+on focus, or on a timer. Clicking **Check for updates** requests the signed release
+manifest from GitHub. **Download update** separately downloads and verifies the
+installer. **Install update** uses the downloaded bytes and requires idle chats.
+The releases-page link opens GitHub only when clicked. GitHub may observe ordinary
+network metadata such as the requesting IP address; no workspace or conversation is
+included in these updater requests. This promise concerns the updater, not provider,
+Codex, plugin, or other optional feature traffic described above.
+
+## Independent approval reviewer
+
+When configured, the CLI's budgeted approval context, user restrictions, pending
+operation and relevant evidence are sent to the chosen approval provider. Its
+address, model and credentials are independent of the main provider. Main-provider
+authentication headers are not forwarded to the approval provider. A local reviewer
+keeps that inference hop local, subject to the endpoint's own behavior.

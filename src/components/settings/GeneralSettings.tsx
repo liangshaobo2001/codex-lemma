@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { type Accent, type Theme, useThemeStore } from '@/stores/settings';
 import { KeyboardShortcuts } from './KeyboardShortcuts';
 import { LanguageSelector } from './LanguageSelector';
+import { UpdateSettings } from './UpdateSettings';
 
 // label is a key under app:accent, translated where it renders.
 const ACCENT_OPTIONS: Array<{ value: Accent; label: string; colorClass: string }> = [
@@ -174,6 +175,7 @@ export function GeneralSettings() {
           </CardContent>
         </Card>
       </section>
+      <UpdateSettings />
       <KeyboardShortcuts />
     </div>
   );
