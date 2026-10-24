@@ -1,5 +1,6 @@
 [workspace]
 resolver = "2"
+exclude = ["vendor/codex-finder"]
 members = [
   "crates/automation",
   "crates/codex",
@@ -11,7 +12,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.10"
+version = "0.1.11"
 edition = "2024"
 
 [workspace.dependencies]
@@ -63,7 +64,7 @@ notify-debouncer-full = "0.6"
 portable-pty = "0.9"
 
 # codex / claude deps
-codex-finder = { git = "https://github.com/milisp/codex-finder.git" }
+codex-finder = { path = "vendor/codex-finder" }
 codexia-git = { path = "crates/git" }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls-native-roots"] }
 gix = { version = "0.88.0", features = ["blocking-network-client", "blocking-http-transport-curl"] }

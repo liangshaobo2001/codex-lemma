@@ -2,7 +2,12 @@
 
 ## Unreleased
 
-## [0.1.10] - 2026-10-24
+## [0.1.11] - 2026-10-24
+
+- Vendor the exact MIT-licensed codex-finder revision already pinned by the project, so fresh and release builds no longer depend on its unavailable Git repository. Preserve original source, license and provenance.
+- Includes the Bonsai stream compatibility fix and aligned session menu icons from the withheld 0.1.10 candidate.
+
+## [0.1.10] - Unreleased candidate
 
 - Accept Responses streams that omit output indices while retaining stable item or call IDs, including Bonsai/llama.cpp. Preserve explicit indices and reject conflicting identities instead of merging outputs.
 - Add matching icons to Rename, Delete, and Copy ID in the session menu, with one aligned text column.

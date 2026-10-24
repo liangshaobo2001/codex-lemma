@@ -813,7 +813,6 @@ dependencies = [
 [[package]]
 name = "codex-finder"
 version = "0.1.2"
-source = "git+https://github.com/milisp/codex-finder.git#fbfa841e465af96ec681704531766fe88cc895fc"
 dependencies = [
  "anyhow",
  "encoding_rs",
@@ -824,7 +823,7 @@ dependencies = [
 
 [[package]]
 name = "codex-lemma"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -892,7 +891,7 @@ dependencies = [
 
 [[package]]
 name = "codexia-automation"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "async-trait",
  "chrono",
@@ -911,7 +910,7 @@ dependencies = [
 
 [[package]]
 name = "codexia-codex"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -940,7 +939,7 @@ dependencies = [
 
 [[package]]
 name = "codexia-db"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "anyhow",
  "chrono",
@@ -954,7 +953,7 @@ dependencies = [
 
 [[package]]
 name = "codexia-git"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "anyhow",
  "gix",
@@ -966,7 +965,7 @@ dependencies = [
 
 [[package]]
 name = "codexia-shared"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1005,7 +1004,7 @@ dependencies = [
 
 [[package]]
 name = "codexia-web"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "anyhow",
  "async-trait",

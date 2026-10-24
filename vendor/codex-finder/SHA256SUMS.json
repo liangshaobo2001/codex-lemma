@@ -1,0 +1,11 @@
+{
+  "Cargo.toml": "706fd7bd7b72517574023efb9f27a760cc71f46ec7d8af58352d2a0038cb4af7",
+  "LICENSE": "51aa23aa6b01072648a2b460ede01a6e881d152d342348a97c75c56e8770d12c",
+  "README.md": "810dede5988348a5fa50e39f00227eaa255b377d57b951a112b82d0e4e07c132",
+  "examples/find_bin.rs": "2ac3c14abed6ea114e5c4c5173acf3d9f701e0f45ac43b037dfb0c061807fdeb",
+  "src/coder_discovery.rs": "e5a1c8bc7c2c00219a3d776c722b597afd9c073505cc467facd781865a3cd9ed",
+  "src/codex_discovery.rs": "ed0eba5152d22676cee01d3a4db94a96b975a483cf8f7427681ebba4c9e465af",
+  "src/command.rs": "c20186a63cf3327aadd310168afbe17cc76052d8ed60f0bb3cec454750dcb4c7",
+  "src/lib.rs": "0dbea4f5265735ed75fcb9214b6ef09f0bcf6ca136a01b77ee78051bf8b2cb64",
+  "src/wsl.rs": "345f237ba2daf24fae0579f8fea43fef103390dd112c79cb1539dccfa511a474"
+}
