@@ -49,12 +49,13 @@ export function useGitWatch(cwd: string | null, onRefresh: () => void, enabled =
 
   useDirWatch(cwd, handleChange, watchEnabled);
 
-  // Clear pending debounce timer on unmount.
+  // Cancel the old workspace timer on disable, workspace changes, and unmount.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cwd and enabled define the timer lifetime even though cleanup only reads its ref.
   useEffect(() => {
     return () => {
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
       }
     };
-  }, []);
+  }, [cwd, enabled]);
 }

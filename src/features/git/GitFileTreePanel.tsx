@@ -71,8 +71,8 @@ export function GitFileTreePanel({
           className="h-8 text-xs"
         />
       </div>
-      <div className="flex-1 min-h-0 overflow-auto">
-        <div className="p-2 space-y-1">
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0 p-2">
           {gitError && (
             <div className="text-xs text-destructive rounded border border-destructive/30 p-2">
               {gitError}
@@ -83,6 +83,7 @@ export function GitFileTreePanel({
           )}
           {cwd ? (
             <GitFileTree
+              stateKey={`${cwd}:${selectedDiffSection}:tree`}
               fileTree={fileTree}
               selectedDiffPath={selectedDiffPath}
               selectedDiffSection={selectedDiffSection}

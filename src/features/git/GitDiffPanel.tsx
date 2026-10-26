@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '@git-diff-view/react/styles/diff-view-pure.css';
 import {
@@ -9,26 +9,35 @@ import {
 } from '@/components/codex/items/fileChangeLogic';
 import { SummaryFileChanges } from '@/components/codex/items/SummaryFileChanges';
 import { useCodexStore } from '@/components/codex/stores/useCodexStore';
-import { useGitWatch } from '@/hooks/useGitWatch';
-import { gitStageFiles, gitStatus, gitUnstageFiles } from '@/services/apiAdapt';
-import { isGitRepo } from '@/services/apiAdapt/git';
+import { gitStageFiles, gitUnstageFiles } from '@/services/apiAdapt';
 import { useEditorStore, useLayoutStore } from '@/stores';
 import { useGitDiffStore } from '@/stores/useGitDiffStore';
 import { GitDiffDialogs } from './GitDiffDialogs';
-import { GitDiffFileList, isDiffAutoExpanded } from './GitDiffFileList';
+import { GitDiffFileList } from './GitDiffFileList';
 import { GitDiffTopBar } from './GitDiffTopBar';
 import { GitFileTreePanel } from './GitFileTreePanel';
 import type { DiffSection, GitDiffPanelProps } from './types';
-import { buildFileTree } from './utils';
+import { useGitStatus } from './useGitStatus';
+import { buildFileTree, isDiffAutoExpanded } from './utils';
+
+const EMPTY_EVENTS: ReturnType<typeof useCodexStore.getState>['events'][string] = [];
 
 export default function GitDiffPanel({ cwd, isActive }: GitDiffPanelProps) {
+  const visible = useLayoutStore((state) => state.view === 'agent' && state.isRightPanelOpen);
+  if (!isActive || !visible) return null;
+  return <ActiveGitDiffPanel key={cwd} cwd={cwd} isActive />;
+}
+
+function ActiveGitDiffPanel({ cwd, isActive }: GitDiffPanelProps) {
   const { t } = useTranslation('tools');
-  const { activeFile, openFile } = useEditorStore();
-  const { diffWordWrap } = useLayoutStore();
+  const activeFile = useEditorStore((state) => state.activeFile);
+  const openFile = useEditorStore((state) => state.openFile);
+  const diffWordWrap = useLayoutStore((state) => state.diffWordWrap);
   // Panel state lives in a store so it survives unmounts (right panel close,
   // focus-mode toggle, mobile drawer) instead of resetting on every remount.
   const {
-    gitData,
+    gitData: cachedGitData,
+    cwdKey,
     gitError,
     showFileTree,
     filterText,
@@ -39,7 +48,6 @@ export default function GitDiffPanel({ cwd, isActive }: GitDiffPanelProps) {
     selectedSection: userSelectedDiffSection,
     sectionExplicitlySelected,
     lastInternallyOpenedFile,
-    syncCwd,
     toggleFileTree,
     setDiffSource,
     setFilterText,
@@ -50,16 +58,17 @@ export default function GitDiffPanel({ cwd, isActive }: GitDiffPanelProps) {
     selectSection,
     selectPath: selectDiffPath,
     setLastInternallyOpenedFile,
-    setGitData,
     setGitError,
   } = useGitDiffStore();
 
-  const [gitLoading, setGitLoading] = useState(false);
-  const [diffRefreshKey, setDiffRefreshKey] = useState(0);
+  const {
+    loading: gitLoading,
+    revision: diffRefreshKey,
+    refresh: refreshGitStatus,
+  } = useGitStatus(cwd);
+  const gitData = cwdKey === cwd ? cachedGitData : null;
   const [bulkStageDialogOpen, setBulkStageDialogOpen] = useState(false);
   const [bulkStageLoading, setBulkStageLoading] = useState(false);
-
-  const [cwdTrigger, setCwdTrigger] = useState(0);
 
   const toPosix = useCallback((value: string) => value.replace(/\\/g, '/'), []);
   const normalizeRelativePath = useCallback(
@@ -67,22 +76,12 @@ export default function GitDiffPanel({ cwd, isActive }: GitDiffPanelProps) {
     [toPosix]
   );
 
-  const prevCwdRef = useRef(cwd);
-  if (cwd !== prevCwdRef.current) {
-    prevCwdRef.current = cwd;
-    setCwdTrigger((prev) => prev + 1);
-  }
-
-  // Drops cached status and selection whenever the workspace changes.
-  useEffect(() => {
-    syncCwd(cwd);
-    if (!cwd) setGitLoading(false);
-  }, [cwd, syncCwd]);
-
   // Get codex events for the current thread
-  const { events } = useCodexStore();
   const currentThreadId = useCodexStore((state) => state.currentThreadId);
-  const currentThreadEvents = currentThreadId ? events[currentThreadId] || [] : [];
+  const currentThreadEvents =
+    useCodexStore((state) =>
+      diffSource === 'latest-turn' && currentThreadId ? state.events[currentThreadId] : undefined
+    ) ?? EMPTY_EVENTS;
   const latestTurnId = useMemo(() => {
     let lastTurnId: string | null = null;
     for (let i = currentThreadEvents.length - 1; i >= 0; i -= 1) {
@@ -104,45 +103,6 @@ export default function GitDiffPanel({ cwd, isActive }: GitDiffPanelProps) {
     if (eventIndex < 0) return undefined;
     return { events: currentThreadEvents, eventIndex };
   }, [currentThreadEvents, latestTurnId]);
-
-  const refreshGitStatus = useCallback(async () => {
-    if (!cwd) return;
-    if (!(await isGitRepo(cwd))) {
-      setGitData(null);
-      setGitError(null);
-      setGitLoading(false);
-      return;
-    }
-    setGitError(null);
-    try {
-      const status = await gitStatus(cwd);
-      setGitData(status);
-      setDiffRefreshKey((k) => k + 1);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setGitError(message);
-      setGitData(null);
-    } finally {
-      setGitLoading(false);
-    }
-  }, [cwd, setGitData, setGitError]);
-
-  const silentRefresh = useCallback(() => {
-    void refreshGitStatus();
-  }, [refreshGitStatus]);
-  useGitWatch(cwd, silentRefresh);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: cwdTrigger is a reload signal
-  useEffect(() => {
-    if (cwdTrigger === 0) return;
-    if (!cwd) return;
-    refreshGitStatus();
-  }, [cwdTrigger, refreshGitStatus]);
-
-  useEffect(() => {
-    if (!isActive || !cwd) return;
-    refreshGitStatus();
-  }, [isActive, cwd, refreshGitStatus]);
 
   const stagedEntries = useMemo(
     () =>
@@ -219,7 +179,10 @@ export default function GitDiffPanel({ cwd, isActive }: GitDiffPanelProps) {
     return activeEntries.filter((entry) => entry.path.toLowerCase().includes(keyword));
   }, [activeEntries, filterText]);
 
-  const fileTree = useMemo(() => buildFileTree(filteredEntries), [filteredEntries]);
+  const fileTree = useMemo(
+    () => (showFileTree && diffSource !== 'latest-turn' ? buildFileTree(filteredEntries) : []),
+    [filteredEntries, showFileTree, diffSource]
+  );
 
   // Fold/expand state is tracked per section so switching staged/unstaged
   // restores what that side looked like instead of inheriting the other's.
@@ -353,6 +316,7 @@ export default function GitDiffPanel({ cwd, isActive }: GitDiffPanelProps) {
   const selectPath = (section: DiffSection, path: string) => {
     selectSection(section);
     selectDiffPath(path);
+    setDiffExpanded(section, path, true);
     const resolved = resolveDiffPath(path);
     setLastInternallyOpenedFile(resolved);
     openFile(resolved);

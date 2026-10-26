@@ -1,11 +1,8 @@
-import { DiffModeEnum, DiffView } from '@git-diff-view/react';
-import { createTwoFilesPatch } from 'diff';
 import { ChevronDown, ChevronRight, Minus, Plus, Undo2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useThemeContext } from '@/contexts/ThemeContext';
 import {
   type GitFileDiffMetaResponse,
   type GitFileDiffResponse,
@@ -16,14 +13,10 @@ import {
   gitStageFiles,
   gitUnstageFiles,
 } from '@/services/apiAdapt';
-import { useEditorStore, useLayoutStore } from '@/stores';
+import { useEditorStore } from '@/stores';
+import { GitDiffPreview } from './GitDiffPreview';
 import type { DiffSection, DiffSource } from './types';
-import {
-  formatBytes,
-  LARGE_DIFF_THRESHOLD_BYTES,
-  statusColorByText,
-  statusTextForSection,
-} from './utils';
+import { LARGE_DIFF_THRESHOLD_BYTES, statusColorByText, statusTextForSection } from './utils';
 
 interface GitDiffFileItemProps {
   cwd: string;
@@ -53,9 +46,9 @@ export function GitDiffFileItem({
   onRefreshStatus,
 }: GitDiffFileItemProps) {
   const { t } = useTranslation('tools');
-  const { resolvedTheme } = useThemeContext();
-  const { hasConfirmedGitRevert, setHasConfirmedGitRevert } = useEditorStore();
-  const { diffSplitMode } = useLayoutStore();
+  const hasConfirmedGitRevert = useEditorStore((state) => state.hasConfirmedGitRevert);
+  const setHasConfirmedGitRevert = useEditorStore((state) => state.setHasConfirmedGitRevert);
+  const openFile = useEditorStore((state) => state.openFile);
   const [diffMeta, setDiffMeta] = useState<GitFileDiffMetaResponse | null>(null);
   const [diffData, setDiffData] = useState<GitFileDiffResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -104,7 +97,13 @@ export function GitDiffFileItem({
 
   // Load full data once user confirms large diff
   useEffect(() => {
-    if (!largeDiffConfirmed || diffMeta?.is_binary) return;
+    if (
+      !largeDiffConfirmed ||
+      !diffMeta ||
+      diffMeta.is_binary ||
+      diffMeta.total_bytes > 1024 * 1024
+    )
+      return;
 
     let cancelled = false;
     setLoading(true);
@@ -123,27 +122,7 @@ export function GitDiffFileItem({
     return () => {
       cancelled = true;
     };
-  }, [largeDiffConfirmed, diffMeta?.is_binary, cwd, entry.path, section]);
-
-  const diffHunks = useMemo(() => {
-    if (!diffData || !diffData.has_changes) return [];
-    const oldPath = `a/${entry.path}`;
-    const newPath = `b/${entry.path}`;
-    const raw = createTwoFilesPatch(
-      oldPath,
-      newPath,
-      diffData.old_content ?? '',
-      diffData.new_content ?? '',
-      '',
-      '',
-      { context: 3 }
-    );
-    const body = raw
-      .split('\n')
-      .filter((l) => !l.startsWith('Index: ') && !l.startsWith('===='))
-      .join('\n');
-    return [`diff --git ${oldPath} ${newPath}\n${body}`];
-  }, [entry.path, diffData]);
+  }, [largeDiffConfirmed, diffMeta, cwd, entry.path, section]);
 
   const handleStage = async () => {
     setStageLoading(true);
@@ -181,8 +160,6 @@ export function GitDiffFileItem({
   const status = statusTextForSection(entry, section);
   const name = entry.path.split('/').pop() ?? entry.path;
   const dir = entry.path.includes('/') ? entry.path.slice(0, entry.path.lastIndexOf('/')) : null;
-  const isBinary = diffMeta?.is_binary ?? false;
-  const isLarge = diffMeta ? !isBinary && diffMeta.total_bytes > LARGE_DIFF_THRESHOLD_BYTES : false;
 
   return (
     <div
@@ -291,55 +268,16 @@ export function GitDiffFileItem({
 
       {/* Diff content */}
       {expanded && (
-        <div className="overflow-auto">
-          {loading && (
-            <div className="px-3 py-2 text-xs text-muted-foreground">{t('git.loadingDiff')}</div>
-          )}
-
-          {!loading && isLarge && !largeDiffConfirmed && diffMeta && (
-            <div className="m-3 rounded border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-              <div className="text-amber-200">
-                {t('git.largeDiff', { size: formatBytes(diffMeta.total_bytes) })}
-              </div>
-              <div className="mt-1 text-xs text-amber-200/70">
-                {t('git.beforeAfter', {
-                  before: formatBytes(diffMeta.old_bytes),
-                  after: formatBytes(diffMeta.new_bytes),
-                })}
-              </div>
-              <Button size="sm" className="mt-2" onClick={() => setLargeDiffConfirmed(true)}>
-                {t('git.loadDiff')}
-              </Button>
-            </div>
-          )}
-
-          {!loading && isBinary && diffMeta && (
-            <div className="px-3 py-2 text-xs text-muted-foreground">
-              {t('git.binaryNotShown', { size: formatBytes(diffMeta.total_bytes) })}
-            </div>
-          )}
-
-          {!loading && diffData && !diffData.has_changes && (
-            <div className="px-3 py-2 text-xs text-muted-foreground">{t('git.noChanges')}</div>
-          )}
-
-          {!loading && diffData && diffData.has_changes && diffHunks.length > 0 && (
-            <div className="git-diff-compact-num">
-              <DiffView
-                className="git-diff-table"
-                data={{
-                  oldFile: { fileName: `a/${entry.path}`, content: diffData.old_content ?? '' },
-                  newFile: { fileName: `b/${entry.path}`, content: diffData.new_content ?? '' },
-                  hunks: diffHunks,
-                }}
-                diffViewMode={diffSplitMode ? DiffModeEnum.Split : DiffModeEnum.Unified}
-                diffViewTheme={resolvedTheme === 'dark' ? 'dark' : 'light'}
-                diffViewHighlight={false}
-                diffViewWrap={wordWrapEnabled}
-              />
-            </div>
-          )}
-        </div>
+        <GitDiffPreview
+          entry={entry}
+          diffMeta={diffMeta}
+          diffData={diffData}
+          loading={loading}
+          largeDiffConfirmed={largeDiffConfirmed}
+          wordWrapEnabled={wordWrapEnabled}
+          onConfirmLarge={() => setLargeDiffConfirmed(true)}
+          onOpenFile={() => openFile(`${cwd.replace(/[\\/]$/, '')}/${entry.path}`)}
+        />
       )}
     </div>
   );

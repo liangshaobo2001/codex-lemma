@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [0.1.15] - 2026-10-26
+
+- Keep Git Review responsive in repositories with tens of thousands of changes by virtualizing the file tree and diff cards. The complete file list remains searchable and accessible.
+- Mount the heavy Git view only while Review is visible; preserve selection, expansion and scroll state, and avoid loading offscreen diff contents even after expanding all files.
+- Coalesce status refreshes, reject stale workspace responses, narrow layout subscriptions, and bound oversized diff previews with an Open file action.
+- Add 41,569-file browser fixtures and real disposable Git repository checks for scrolling, searching, workspace changes, stage, unstage and revert.
+
 ## [0.1.14] - 2026-10-26
 
 - Keep newly created chats in the sidebar while their history is being indexed, including after switching projects. Older or failed list refreshes no longer erase open chats.

@@ -1,12 +1,15 @@
 import { ChevronDown, ChevronRight, FileText, Folder, FolderOpen, Minus, Plus } from 'lucide-react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { DiffSection, TreeNode } from './types';
-import { statusColorByText, statusTextForSection } from './utils';
+import { flattenFileTree, statusColorByText, statusTextForSection } from './utils';
+import { VirtualGitList } from './VirtualGitList';
 
 interface GitFileTreeProps {
   fileTree: TreeNode[];
+  stateKey: string;
   selectedDiffPath: string | null;
   selectedDiffSection: DiffSection;
   collapsedFolders: Set<string>;
@@ -18,6 +21,7 @@ interface GitFileTreeProps {
 
 export function GitFileTree({
   fileTree,
+  stateKey,
   selectedDiffPath,
   selectedDiffSection,
   collapsedFolders,
@@ -27,11 +31,15 @@ export function GitFileTree({
   onUnstage,
 }: GitFileTreeProps) {
   const { t } = useTranslation('tools');
+  const rows = useMemo(
+    () => flattenFileTree(fileTree, collapsedFolders),
+    [fileTree, collapsedFolders]
+  );
   if (fileTree.length === 0) {
     return null;
   }
 
-  const renderTreeNode = (node: TreeNode, depth: number): React.ReactNode => {
+  const renderTreeNode = ({ node, depth }: { node: TreeNode; depth: number }): React.ReactNode => {
     if (node.type === 'folder') {
       const collapsed = collapsedFolders.has(node.path);
       return (
@@ -54,7 +62,6 @@ export function GitFileTree({
             )}
             <span className="truncate">{node.name}</span>
           </button>
-          {!collapsed && node.children.map((child) => renderTreeNode(child, depth + 1))}
         </div>
       );
     }
@@ -115,5 +122,16 @@ export function GitFileTree({
     );
   };
 
-  return <>{fileTree.map((node) => renderTreeNode(node, 0))}</>;
+  return (
+    <VirtualGitList
+      key={stateKey}
+      stateKey={stateKey}
+      items={rows}
+      itemKey={(row) => `${row.node.type}:${row.node.path}`}
+      rowHeight={30}
+      selectedKey={selectedDiffPath ? `file:${selectedDiffPath}` : null}
+      label="Changed file tree"
+      renderItem={renderTreeNode}
+    />
+  );
 }

@@ -32,12 +32,15 @@ const initialStats: GitStats = {
   isLoading: false,
 };
 
+let statsRequest = 0;
+
 export const useGitStatsStore = create<GitStatsStore>((set) => ({
   stats: null,
 
   setStats: (stats) => set({ stats }),
 
   refreshStats: async (cwd: string, silent = false) => {
+    const request = ++statsRequest;
     if (!cwd) {
       set({ stats: null });
       return;
@@ -45,20 +48,24 @@ export const useGitStatsStore = create<GitStatsStore>((set) => ({
 
     // Non-git cwds (e.g. claude session that lived in $HOME) — render empty
     // instead of error-flashing. Same gate as useGitWatch's polling.
-    if (!(await isGitRepo(cwd))) {
+    const repo = await isGitRepo(cwd);
+    if (request !== statsRequest) return;
+    if (!repo) {
       set({ stats: null });
       return;
     }
 
-    set((state) => ({
-      stats: state.stats
-        ? { ...state.stats, isLoading: true }
-        : { ...initialStats, isLoading: true },
-    }));
+    if (!silent)
+      set((state) => ({
+        stats: state.stats
+          ? { ...state.stats, isLoading: true }
+          : { ...initialStats, isLoading: true },
+      }));
 
     try {
       const [status, diffStats] = await Promise.all([gitStatus(cwd), gitDiffStats(cwd)]);
 
+      if (request !== statsRequest) return;
       const stagedEntries = status.entries.filter(
         (entry) => entry.index_status !== ' ' && entry.index_status !== '?'
       );
@@ -103,6 +110,7 @@ export const useGitStatsStore = create<GitStatsStore>((set) => ({
         return { stats: nextStats };
       });
     } catch (error) {
+      if (request !== statsRequest) return;
       console.error('Failed to refresh git stats:', error);
       if (!silent) {
         set((state) => ({

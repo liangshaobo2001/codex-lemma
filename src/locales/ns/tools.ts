@@ -256,6 +256,9 @@ export const tools = {
       largeDiff: 'Large diff ({{size}}) — load manually?',
       beforeAfter: 'Before: {{before}} · After: {{after}}',
       loadDiff: 'Load diff',
+      diffPreviewLimited:
+        'This diff is too large to preview. Open the file to inspect its contents.',
+      openFile: 'Open file',
       binaryNotShown: 'Binary file not shown ({{size}})',
       noChanges: 'No changes',
     },
@@ -552,6 +555,8 @@ export const tools = {
       largeDiff: '差异较大（{{size}}），要手动加载吗？',
       beforeAfter: '更改前：{{before}} · 更改后：{{after}}',
       loadDiff: '加载差异',
+      diffPreviewLimited: '差异过大，无法在此预览。可打开文件查看内容。',
+      openFile: '打开文件',
       binaryNotShown: '不显示二进制文件（{{size}}）',
       noChanges: '没有更改',
     },

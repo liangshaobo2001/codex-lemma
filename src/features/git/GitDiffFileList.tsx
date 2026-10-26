@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next';
 import type { GitStatusEntry } from '@/services/apiAdapt';
 import { GitDiffFileItem } from './GitDiffFileItem';
 import type { DiffSection, DiffSource } from './types';
+import { isDiffAutoExpanded } from './utils';
+import { VirtualGitList } from './VirtualGitList';
 
 interface GitDiffFileListProps {
   cwd: string | null;
@@ -15,11 +17,6 @@ interface GitDiffFileListProps {
   onExpandedChange: (path: string, expanded: boolean) => void;
   onSelect: (path: string) => void;
   onRefreshStatus: () => void;
-}
-
-/** Auto-expand all files when the list is short, otherwise only the first few. */
-export function isDiffAutoExpanded(index: number, total: number): boolean {
-  return index < (total <= 10 ? total : 5);
 }
 
 export function GitDiffFileList({
@@ -53,8 +50,14 @@ export function GitDiffFileList({
   }
 
   return (
-    <div className="flex-1 min-h-0 min-w-0 overflow-y-auto">
-      {entries.map((entry, index) => (
+    <VirtualGitList
+      key={`${cwd}:${section}`}
+      stateKey={`${cwd}:${section}:diff`}
+      items={entries}
+      itemKey={(entry) => entry.path}
+      label="Changed file diffs"
+      selectedKey={selectedDiffPath}
+      renderItem={(entry, index) => (
         <GitDiffFileItem
           key={entry.path}
           cwd={cwd}
@@ -69,7 +72,7 @@ export function GitDiffFileList({
           onSelect={() => onSelect(entry.path)}
           onRefreshStatus={onRefreshStatus}
         />
-      ))}
-    </div>
+      )}
+    />
   );
 }

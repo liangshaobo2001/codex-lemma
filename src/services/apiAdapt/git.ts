@@ -106,8 +106,15 @@ export async function gitCheckoutBranch(cwd: string, branch: string) {
   });
 }
 
-export async function gitStatus(cwd: string) {
-  return await postJson<GitStatusResponse>('/api/git/status', { cwd });
+const pendingStatuses = new Map<string, Promise<GitStatusResponse>>();
+export function gitStatus(cwd: string): Promise<GitStatusResponse> {
+  const pending = pendingStatuses.get(cwd);
+  if (pending) return pending;
+  const request = postJson<GitStatusResponse>('/api/git/status', { cwd }).finally(() => {
+    if (pendingStatuses.get(cwd) === request) pendingStatuses.delete(cwd);
+  });
+  pendingStatuses.set(cwd, request);
+  return request;
 }
 
 export async function gitFileDiff(cwd: string, filePath: string, staged: boolean) {
@@ -133,6 +140,7 @@ export async function gitStageFiles(cwd: string, filePaths: string[]) {
     cwd,
     filePaths,
   });
+  pendingStatuses.delete(cwd);
 }
 
 export async function gitUnstageFiles(cwd: string, filePaths: string[]) {
@@ -140,6 +148,7 @@ export async function gitUnstageFiles(cwd: string, filePaths: string[]) {
     cwd,
     filePaths,
   });
+  pendingStatuses.delete(cwd);
 }
 
 export async function gitReverseFiles(cwd: string, filePaths: string[], staged: boolean) {
@@ -148,6 +157,7 @@ export async function gitReverseFiles(cwd: string, filePaths: string[], staged: 
     filePaths,
     staged,
   });
+  pendingStatuses.delete(cwd);
 }
 
 export async function gitCreateWorktree(cwd: string, worktreeKey: string) {

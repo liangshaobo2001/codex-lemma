@@ -8,6 +8,26 @@ interface MutableFolderNode {
   files: TreeFileNode[];
 }
 
+/** Auto-expansion is a view preference, not permission to eagerly load every diff. */
+export function isDiffAutoExpanded(index: number, total: number): boolean {
+  return index < (total <= 10 ? total : 5);
+}
+
+export function flattenFileTree(
+  nodes: TreeNode[],
+  collapsed: Set<string>
+): { node: TreeNode; depth: number }[] {
+  const rows: { node: TreeNode; depth: number }[] = [];
+  const visit = (children: TreeNode[], depth: number) => {
+    for (const node of children) {
+      rows.push({ node, depth });
+      if (node.type === 'folder' && !collapsed.has(node.path)) visit(node.children, depth + 1);
+    }
+  };
+  visit(nodes, 0);
+  return rows;
+}
+
 export const LARGE_DIFF_THRESHOLD_BYTES = 512 * 1024;
 
 export function statusTextForSection(entry: GitStatusEntry, section: DiffSection): string {

@@ -138,7 +138,21 @@ export const useGitDiffStore = create<GitDiffState>()(
 
       setGitData: (data) =>
         set((state) =>
-          JSON.stringify(state.gitData) === JSON.stringify(data) ? state : { gitData: data }
+          state.gitData === data ||
+          (state.gitData &&
+            data &&
+            state.gitData.repo_root === data.repo_root &&
+            state.gitData.entries.length === data.entries.length &&
+            state.gitData.entries.every((entry, index) => {
+              const other = data.entries[index];
+              return (
+                entry.path === other.path &&
+                entry.index_status === other.index_status &&
+                entry.worktree_status === other.worktree_status
+              );
+            }))
+            ? state
+            : { gitData: data }
         ),
 
       setGitError: (message) => set({ gitError: message }),
