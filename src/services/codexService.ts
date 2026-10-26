@@ -202,12 +202,17 @@ const syncThreadToStore = (
   };
 };
 
+// This store feeds every sidebar scope, although a request only lists one cwd.
+let threadListRequest = 0;
+
 export const codexService = {
   async loadThreads(
     cwd: string | null,
     archived: boolean = false,
     sortKey: 'created_at' | 'updated_at' = 'updated_at'
   ) {
+    const request = ++threadListRequest;
+    const before = new Map(useCodexStore.getState().threads.map((thread) => [thread.id, thread]));
     try {
       const params: ThreadListParams = {
         cursor: null,
@@ -219,16 +224,35 @@ export const codexService = {
         useStateDbOnly: true,
       };
       const response = await listThreads(params);
-      const workingDirThreads = response.data;
-      const nextCursor = response.nextCursor ?? null;
+      if (request !== threadListRequest) return;
       useThreadReadStateStore.getState().mergeFromList(response.readStates);
-      const { setThreads, setThreadListNextCursor } = useCodexStore.getState();
-      setThreads(workingDirThreads);
-      setThreadListNextCursor(nextCursor);
+      useCodexStore.setState((state) => {
+        const current = new Map(state.threads.map((thread) => [thread.id, thread]));
+        const active = new Set(state.activeThreadIds);
+        const rows = new Map<string, Thread>(
+          response.data.map((thread) => {
+            const live = current.get(thread.id);
+            // A create, rename or model update after this request began wins.
+            return [
+              thread.id,
+              live && before.get(thread.id) !== live
+                ? { ...thread, ...live, turns: [] }
+                : { ...thread, turns: [] },
+            ];
+          })
+        );
+        for (const live of state.threads) {
+          // A filtered/paginated DB page is not a deletion of an open chat.
+          if (!rows.has(live.id) && (active.has(live.id) || before.get(live.id) !== live)) {
+            rows.set(live.id, live);
+          }
+        }
+        return { threads: [...rows.values()], threadListNextCursor: response.nextCursor ?? null };
+      });
     } catch (error: unknown) {
+      if (request !== threadListRequest) return;
       console.error('[CodexService] Failed to load threads:', error);
       useCodexStore.getState().setThreadListNextCursor(null);
-      useCodexStore.getState().setThreads([]);
     }
   },
   async setCurrentThread(threadId: string | null) {

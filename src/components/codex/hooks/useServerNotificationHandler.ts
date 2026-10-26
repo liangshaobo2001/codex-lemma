@@ -6,6 +6,7 @@ import {
   useThreadQueueStore,
   useThreadReadStateStore,
 } from '@/components/codex/stores';
+import { useThreadModels } from '@/components/codex/stores/useThreadModels';
 import { useServerProjectsStore } from '@/features/projects/useServerProjectsStore';
 import { allowSleep, preventSleep } from '@/services/apiAdapt';
 import { confirmThreadLifecycle } from '@/services/threadLifecycle';
@@ -108,14 +109,20 @@ export function useServerNotificationHandler(
         }
 
         if (method === 'thread/started') {
-          const { cwd } = payload.params.thread;
-          if (threadId && cwd) {
-            useCodexStore.setState((state) => ({
-              threads: state.threads.map((thread) =>
-                thread.id === threadId ? { ...thread, cwd: cwd } : thread
-              ),
-            }));
-          }
+          const started = {
+            ...payload.params.thread,
+            ...useThreadModels.getState().confirmed[threadId],
+            turns: [],
+          };
+          useCodexStore.setState((state) => ({
+            threads: state.threads.some((thread) => thread.id === threadId)
+              ? state.threads.map((thread) =>
+                  thread.id === threadId
+                    ? { ...thread, ...started, preview: started.preview || thread.preview }
+                    : thread
+                )
+              : [started, ...state.threads],
+          }));
         }
 
         if (method === 'thread/name/updated') {

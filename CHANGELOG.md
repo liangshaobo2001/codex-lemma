@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [0.1.14] - 2026-10-26
+
+- Keep newly created chats in the sidebar while their history is being indexed, including after switching projects. Older or failed list refreshes no longer erase open chats.
+- Insert new chats from shared server notifications immediately and deduplicate the matching creation response without changing the selected chat or reverting its confirmed model.
+- Add regression coverage for delayed responses, failed refreshes, project and combined lists, notification ordering, and returning to a new chat without refreshing the window.
+
 ## [0.1.13] - 2026-10-24
 
 - Add manual update checks in General settings, with separate download and installation actions, signed-version/package verification, and active/queued-task installation protection. Opening the app or settings does not check for updates.
@@ -63,8 +69,8 @@
 - Hide the native long-thread compaction advisory in live and restored chats while preserving other warnings.
 
 - Collapse long user messages to a 15-line preview with expand/collapse controls, preserving full copy/edit content.
-- Keep the previous turnâ€™s throughput visible while awaiting a new reading and remove the approximate symbol from the compact display; retain measurement details on hover.
-- Default completion sound off, including upgrades, with an opt-in switch under Settings â†’ Codex â†’ Task.
+- Keep the previous turnÃ¢â‚¬â„¢s throughput visible while awaiting a new reading and remove the approximate symbol from the compact display; retain measurement details on hover.
+- Default completion sound off, including upgrades, with an opt-in switch under Settings Ã¢â€ â€™ Codex Ã¢â€ â€™ Task.
 
 - Use regular-weight text for workspace navigation, project/chat names, and composer/toolbar controls; retain the settings typography and message emphasis.
 
