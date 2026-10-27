@@ -35,6 +35,18 @@ cargo test --workspace --locked
 
 For frontend changes also run `bunx react-doctor@latest --no-telemetry --scope changed` and review its findings. Run targeted Biome checks on edited frontend files. Do not run broad automated formatting over unrelated files. Rust checks require a built `dist` directory and staged resources. Preserve regression tests and report environmental limitations.
 
+### Provider reconnect regression (no model required)
+
+Set `CODEX_PATH` to the exact CLI executable under test, then run:
+
+```powershell
+node scripts/verify-thread-reconnect.mjs 0
+node scripts/verify-thread-reconnect.mjs 1
+node scripts/verify-thread-reconnect.mjs 1800
+```
+
+The script creates a marked temporary Codex home and loopback Responses fixtures, preserving the existing home and plugin installation state. It exercises OpenAI/custom provider changes, tool-adapter rebinding, active-turn restrictions, concurrent model selections, and persisted history. A dummy credential is used only for the local OpenAI-provider fixture. The child process sends unrelated HTTP traffic to a closed loopback proxy, so CLI background catalog sync cannot reach external services. Results include the exact CLI path/version, received request sequence, and a configuration checksum; `result.json` and `fixture.log` remain in the printed temporary directory. Unit tests separately cover notification-before-ack, notification-after-ack, cancellation, timeout, unsubscribe statuses, and bounded resume-only retry. These fixtures do not validate live provider authentication or real model behavior.
+
 ## Build a release
 
 Run `pwsh -File scripts/package-release.ps1` after validation. See [RELEASING.md](docs/RELEASING.md) for artifacts, checksums, and publishing. The source snapshot excludes dependencies, compiled binaries, model weights, credentials, and user data.

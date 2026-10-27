@@ -119,11 +119,10 @@ impl Bindings {
         if let Some(overrides)=params["config"].as_object() {
             for (key,value) in overrides { resume["config"][key]=value.clone(); }
         }
-        client.send_raw_request("thread/unsubscribe",json!({"threadId":thread})).await?;
-        client.tool_discovery.closed(thread).await;
+        let mut closing=client.detach_for_reconnect(thread).await?;
         let address=client.tool_discovery.register(thread,id,base,auth_headers(definition)).await?;
         transport_config(&mut resume["config"],id,&address,&config["config"]["model_providers"]);
-        let changed=client.send_raw_request("thread/resume",resume).await?;
+        let changed=closing.resume(||client.send_raw_request("thread/resume",resume.clone())).await?;
         if changed["modelProvider"]!=id || changed["model"]!=model { return Err("Tool discovery could not preserve the chat's provider and model.".into()); }
         let mut settings=json!({"threadId":thread});
         for key in ["disabledPluginIds","collaborationMode"] { if let Some(value)=old.get(key).filter(|v|!v.is_null()) { settings[key]=value.clone(); } }

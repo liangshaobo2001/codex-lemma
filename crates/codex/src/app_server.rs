@@ -24,10 +24,25 @@ pub struct CodexAppServer {
     pending: Mutex<HashMap<u64, oneshot::Sender<Result<Value, String>>>>,
     next_id: AtomicU64,
     thread_configuration_locks: Mutex<HashMap<String, std::sync::Weak<Mutex<()>>>>,
+    thread_closed: tokio::sync::broadcast::Sender<String>,
     _request_metrics: Option<crate::request_metrics::Collector>,
 }
 
 impl CodexAppServer {
+    /// The caller holds the per-thread configuration lock across detach/resume.
+    pub(crate) async fn detach_for_reconnect(&self, thread: &str) -> Result<crate::thread_reconnect::ClosingThread, String> {
+        let mut closing = crate::thread_reconnect::ClosingThread::new(thread, self.thread_closed.subscribe());
+        // Unloading belongs to the app-server, not a resumed workspace's config.
+        let config = tokio::time::timeout_at(closing.deadline(), self.send_raw_request("config/read", serde_json::json!({"includeLayers":false})))
+            .await.map_err(|_| "Timed out reading the chat unload policy.".to_string())??;
+        let immediate = config["config"]["thread_unload_delay_secs"] == 0;
+        let result = tokio::time::timeout_at(closing.deadline(), self.send_raw_request("thread/unsubscribe", serde_json::json!({"threadId":thread})))
+            .await.map_err(|_| "Timed out detaching the chat. No message was resent.".to_string())??;
+        self.tool_bindings.detached(thread).await;
+        closing.accepted(&result["status"], immediate).await?;
+        self.tool_discovery.closed(thread).await;
+        Ok(closing)
+    }
     /// Refuse native installation when active/queued work or an unknown status remains.
     pub async fn ensure_idle(&self) -> Result<(),String> {
         let loaded=self.send_raw_request("thread/loaded/list",serde_json::json!({"limit":100})).await?;
@@ -246,6 +261,7 @@ pub async fn connect_codex_with_tool_policy(event_sink: Arc<dyn EventSink>, tool
         pending: Mutex::new(HashMap::new()),
         next_id: AtomicU64::new(1),
         thread_configuration_locks: Mutex::new(HashMap::new()),
+        thread_closed: tokio::sync::broadcast::channel(256).0,
         _request_metrics: collector,
     });
     log::info!("Connected to codex app-server");
@@ -276,6 +292,11 @@ pub async fn connect_codex_with_tool_policy(event_sink: Arc<dyn EventSink>, tool
             if value["method"] == "thread/closed" && let Some(thread) = value.pointer("/params/threadId").and_then(Value::as_str)
                 && !client_clone.tool_bindings.bound(thread).await { client_clone.tool_discovery.closed(thread).await; }
             client_clone.tool_bindings.notification(&value).await;
+            // Publish only after old connection cleanup, before delivering the
+            // next RPC response. Receivers are registered before unsubscribe.
+            if value["method"] == "thread/closed" && let Some(thread) = value.pointer("/params/threadId").and_then(Value::as_str) {
+                let _ = client_clone.thread_closed.send(thread.into());
+            }
             match classify(&value) {
                 Some(ServerMessage::Response { id, result }) => {
                     let Some(id) = id.as_pending_key() else { continue };

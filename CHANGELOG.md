@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [0.1.17] - 2026-10-27
+
+- Fix provider switching with immediate thread unloading: wait for the CLI's actual shutdown notification before restoring the chat, including tool-discovery rebinding.
+- Preserve nonzero unload delays and retry a matching closing response only after shutdown, with bounded waits, explicit subscription errors and no automatic resending of user turns.
+- Add notification-ordering and cancellation regression tests, plus local Responses fixtures for cross-provider changes, concurrent selections and persisted history with CLI 0.163.0.
+- Set an explicit Windows taskbar identity matching installed shortcuts to keep launches grouped under one icon.
+
 ## [0.1.16] - 2026-10-27
 
 - Paste screenshots and image files into the composer, with removable previews and separate unsent images per chat. Windows Explorer file copy is supported alongside regular text paste.

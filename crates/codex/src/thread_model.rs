@@ -81,8 +81,8 @@ pub async fn switch(codex: &CodexAppServer, params: ModelParams) -> Result<Value
     }
     if !active {
         let resume = resume_params(&old, &params)?;
-        codex.send_request("thread/unsubscribe", json!({"threadId":params.thread_id})).await?;
-        let changed = codex.send_request("thread/resume", resume).await?;
+        let mut closing = codex.detach_for_reconnect(&params.thread_id).await?;
+        let changed = closing.resume(|| codex.send_request("thread/resume", resume.clone())).await?;
         verify(&changed, &params)?;
     }
     // Persist idle model/effort choices too, so queued turns use the same model as the picker.

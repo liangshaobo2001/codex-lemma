@@ -9,6 +9,7 @@ pub mod providers;
 pub mod stats;
 pub mod history;
 pub mod thread_model;
+mod thread_reconnect;
 pub mod reviewer;
 pub mod tool_discovery;
 mod server_request;
