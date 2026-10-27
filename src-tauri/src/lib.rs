@@ -82,6 +82,7 @@ pub fn run() {
             .manage(DictationState::default())
             .invoke_handler(tauri::generate_handler![
                 commands::codex::initialize_codex_async,
+                commands::clipboard::read_clipboard_files,
                 commands::dictation::dictation_model_status,
                 commands::dictation::dictation_download_model,
                 commands::dictation::dictation_cancel_download,

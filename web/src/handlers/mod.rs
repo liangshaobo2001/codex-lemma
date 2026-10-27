@@ -6,6 +6,8 @@ use codexia_codex::providers::{load_env_keys, load_and_fetch_models};
 
 use super::types::{ErrorResponse, WebServerState};
 
+mod attachments;
+pub(super) use attachments::*;
 mod claude_usage;
 mod custom_models;
 mod reviewer;

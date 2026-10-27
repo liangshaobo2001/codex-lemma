@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [0.1.16] - 2026-10-27
+
+- Paste screenshots and image files into the composer, with removable previews and separate unsent images per chat. Windows Explorer file copy is supported alongside regular text paste.
+- Keep pasted files available locally as file references; pasted images and files are staged without changing the original clipboard file. Each transferred attachment is limited to 32 MiB.
+- Fix OpenCode Go DeepSeek image tool results that rejected the `original` detail value. Requests use `high` on that endpoint while preserving the stored conversation and image data.
+- Show bounded, sanitized provider error details when available. Add regression coverage for clipboard handling, per-chat drafts, image compatibility, and error redaction.
+
 ## [0.1.15] - 2026-10-26
 
 - Keep Git Review responsive in repositories with tens of thousands of changes by virtualizing the file tree and diff cards. The complete file list remains searchable and accessible.

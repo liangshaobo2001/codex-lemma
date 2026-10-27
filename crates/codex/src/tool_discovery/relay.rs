@@ -48,6 +48,7 @@ pub async fn run(client:&reqwest::Client,endpoint:&Endpoint,body:Value,mode:Mode
     run_observed(client,endpoint,body,mode,session,tx,None).await
 }
 pub(crate) async fn run_observed(client:&reqwest::Client,endpoint:&Endpoint,mut body:Value,mode:Mode,session:Arc<Mutex<Session>>,tx:&mpsc::Sender<Vec<u8>>,observer:Option<&Observer>) -> Result<(),String> {
+    super::image_compat::normalize_tool_images(&endpoint.url, &mut body);
     let specs=body["tools"].as_array().ok_or("Request has no tool declarations.")?;
     if specs.iter().any(|spec|spec["type"]=="tool_search") {
         return cli_owned(client,endpoint,body,mode,session,tx,observer).await;
@@ -85,8 +86,7 @@ pub(crate) async fn run_observed(client:&reqwest::Client,endpoint:&Endpoint,mut 
             .map_err(|_|"The model request could not reach the provider.")?;
         timing.headers();
         if !response.status().is_success() {
-            return Err(if round==0 {format!("Provider rejected the initial request (HTTP {}).",response.status().as_u16())}
-                else {format!("Provider returned HTTP {} after discovery started.",response.status().as_u16())});
+            return Err(super::provider_error::rejection(response,endpoint,round==0).await);
         }
         let mut decoder=Decoder::default();let mut capture=ResponseCapture::default();
         let mut indices:BTreeMap<u64,u64>=BTreeMap::new();let mut hidden=BTreeSet::new();
@@ -160,7 +160,7 @@ async fn cli_owned(client:&reqwest::Client,endpoint:&Endpoint,body:Value,mode:Mo
     body["stream"]=json!(true);
     let mut timing=Timing::start();
     let mut response=client.post(&endpoint.url).headers(endpoint.headers.clone()).json(&body).send().await.map_err(|_|"The model request could not reach the provider.")?;timing.headers();
-    if !response.status().is_success() { return Err(format!("Provider rejected the initial request (HTTP {}).",response.status().as_u16())); }
+    if !response.status().is_success() { return Err(super::provider_error::rejection(response,endpoint,true).await); }
     let mut decoder=Decoder::default();let mut capture=ResponseCapture::default();
     while let Some(chunk)=response.chunk().await.map_err(|_|"The provider stream could not be read.")? {
         for event in decoder.push(&chunk)? {

@@ -2,6 +2,8 @@
 pub mod protocol;
 pub mod wire;
 pub mod probe;
+mod provider_error;
+mod image_compat;
 pub mod relay;
 pub mod gateway;
 pub mod cli_search;

@@ -4,6 +4,9 @@ import { forwardRef, useImperativeHandle } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useThreadModels } from '@/components/codex/stores/useThreadModels';
 
+const saveAttachment = vi.fn();
+vi.mock('@/services/apiAdapt/attachments', () => ({ saveAttachment: (...args: unknown[]) => saveAttachment(...args), MAX_ATTACHMENT_BYTES: 32 * 1024 * 1024 }));
+vi.mock('@/services/apiAdapt/clipboard', () => ({ hasNativeFileClipboard: () => false, readClipboardFiles: vi.fn() }));
 const threadQueueAdd = vi.fn();
 const turnSteer = vi.fn();
 const turnStart = vi.fn();
@@ -157,5 +160,43 @@ describe('Composer tool selection confirmation',()=>{
     render(<Composer/>);const send=screen.getByRole('button',{name:'Send message'});
     expect(send.hasAttribute('disabled')).toBe(true);fireEvent.submit(send.closest('form')!);
     expect(turnStart).not.toHaveBeenCalled();expect(useInputStore.getState().inputValue).toBe('keep this draft');
+  });
+});
+
+
+describe('composer pasted image send paths', () => {
+  beforeEach(() => {
+    vi.clearAllMocks(); setThread(false);
+    useThreadModels.setState({ confirmed: { t1: { modelProvider:'fixture', model:'test-model', reasoningEffort:'medium' } }, pending:{}, errors:{} });
+    useWriterConflictStore.setState({ locked:{}, handoff:null, recovering:false });
+    useSessionTools.setState({pending:{},errors:{},snapshots:{}});
+    useInputStore.setState({inputValue:'with screenshot'});
+    saveAttachment.mockResolvedValue({path:'D:/attachments/capture.png',kind:'image'});
+    turnStart.mockResolvedValue({}); turnSteer.mockResolvedValue({}); threadQueueAdd.mockResolvedValue({id:'q'});
+  });
+  const paste = async () => {
+    fireEvent.paste(screen.getByLabelText('Message'), { clipboardData:{ files:[new File(['png'],'capture.png',{type:'image/png'})], getData:()=>'' } });
+    await waitFor(() => expect(screen.getByRole('img')).toBeTruthy());
+  };
+  it('sends the saved image path to the CLI and clears the preview on success', async () => {
+    render(<Composer/>);await paste();
+    fireEvent.click(screen.getByRole('button',{name:'Send message'}));
+    await waitFor(()=>expect(turnStart).toHaveBeenCalledWith('t1','with screenshot',['D:/attachments/capture.png']));
+    await waitFor(()=>expect(screen.queryByRole('img')).toBeNull());
+  });
+  it('includes attachments when steering and queueing', async () => {
+    setThread(true);render(<Composer/>);await paste();
+    fireEvent.submit(screen.getByLabelText('Message').closest('form')!);
+    await waitFor(()=>expect(turnSteer).toHaveBeenCalledWith('t1','turn-1','with screenshot',['D:/attachments/capture.png']));
+    useInputStore.setState({inputValue:'queued image'});await paste();
+    fireEvent.click(screen.getByRole('button',{name:'Queue message'}));
+    await waitFor(()=>expect(threadQueueAdd).toHaveBeenCalledWith('t1','queued image',['D:/attachments/capture.png']));
+  });
+  it('keeps an unsent image with its chat when switching away and back', async () => {
+    render(<Composer/>);await paste();
+    useCodexStore.setState({currentThreadId:'t2'});
+    await waitFor(()=>expect(screen.queryByRole('img')).toBeNull());
+    useCodexStore.setState({currentThreadId:'t1'});
+    await waitFor(()=>expect(screen.getByRole('img')).toBeTruthy());
   });
 });

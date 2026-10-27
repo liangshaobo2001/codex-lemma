@@ -48,7 +48,7 @@ describe('api adapter routes', () => {
     // These modules wrap capabilities the web server cannot provide: native
     // audio capture, the codex process the desktop owns, the remote/tunnel
     // toggles that start the server itself, native signed installer updates, and their invoke wrapper.
-    const nativeOnly = new Set(['dictation.ts', 'lifecycle.ts', 'remote.ts', 'shared.ts', 'tunnel.ts', 'updates.ts']);
+    const nativeOnly = new Set(['dictation.ts', 'lifecycle.ts', 'remote.ts', 'shared.ts', 'tunnel.ts', 'updates.ts', 'clipboard.ts']);
     const offenders = adapterSources()
       .filter(({ file }) => !nativeOnly.has(file))
       .filter(({ content }) => /\binvokeTauri\b|\bdual(Get|Void)?[<(]/.test(content))

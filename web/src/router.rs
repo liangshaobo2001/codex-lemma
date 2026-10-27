@@ -50,7 +50,7 @@ use super::{
         api_skillssh_leaderboard, api_skillssh_search, api_terminal_resize, api_terminal_start,
         api_terminal_stop, api_terminal_write, api_turn_interrupt, api_turn_start,
         api_unified_add_mcp_server, api_unified_disable_mcp_server, api_unified_enable_mcp_server,
-        api_unified_read_mcp_config, api_unified_remove_mcp_server, api_write_file,
+        api_unified_read_mcp_config, api_unified_remove_mcp_server, api_write_file, api_save_attachment,
         api_get_settings_file, api_save_settings_file, health_check, api_model_list_other,
         api_load_env_keys, api_set_env, api_list_provider_presets, api_add_model_provider,
         api_list_config_providers, api_remove_model_provider, api_custom_models_list,
@@ -317,6 +317,7 @@ pub fn create_router(state: WebServerState) -> Router {
         .route("/api/filesystem/search-files-by-name", post(api_search_files_by_name))
         .route("/api/filesystem/codex-home", get(api_codex_home))
         .route("/api/filesystem/asset", get(api_asset))
+        .route("/api/attachments", post(api_save_attachment).layer(axum::extract::DefaultBodyLimit::max(codexia_shared::fs::attachments::MAX_ATTACHMENT_BYTES)))
         .route("/api/filesystem/read-file", post(api_read_file))
         .route("/api/filesystem/read-text-file", post(api_read_text_file))
         .route("/api/filesystem/read-text-file-lines", post(api_read_text_file_lines))

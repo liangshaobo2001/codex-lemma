@@ -33,6 +33,7 @@ import { QueuedMessages } from './QueuedMessages';
 import { SlashCommandDialogs } from './SlashCommandDialogs';
 import { SlashCommandPopover } from './SlashCommandsSelector';
 import type { SlashDialog } from './slashCommands';
+import { useComposerPaste } from './useComposerPaste';
 
 interface ComposerProps {
   overrideSend?: (text: string) => void;
@@ -74,19 +75,39 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
     modelState.unavailable ||
     toolsPending ||
     Boolean(toolsError);
-  const [images, setImages] = useState<string[]>([]);
+  const [imageDrafts, setImageDrafts] = useState<Record<string, string[]>>({});
   const [slashDialog, setSlashDialog] = useState<SlashDialog | null>(null);
-  const { inputValue, setInputValue, appendFileLinks } = useInputStore();
+  const { inputValue, setInputValue, appendFileLinks, appendInputValue } = useInputStore();
   const handoff = useWriterConflictStore((s) => s.handoff);
   const { currentThreadId, inputFocusTrigger, goalEnabled, setGoalEnabled } = useCodexStore();
   const { addAgentCard, setCurrentAgentCardId } = useAgentCenterStore();
-  const { cwd } = useWorkspaceStore.getState();
+  const cwd = useWorkspaceStore((s) => s.cwd);
+  const draftScope = `${currentThreadId ?? 'draft'}:${cwd ?? ''}`;
+  const images = imageDrafts[draftScope] ?? [];
+  const setImages = useCallback(
+    (value: React.SetStateAction<string[]>) => {
+      setImageDrafts((drafts) => {
+        const next = typeof value === 'function' ? value(drafts[draftScope] ?? []) : value;
+        const updated = { ...drafts };
+        if (next.length) updated[draftScope] = next;
+        else delete updated[draftScope];
+        return updated;
+      });
+    },
+    [draftScope]
+  );
   const threadStatus = useThreadStatus();
   // Actual goal state for the current thread, driven by thread/goal/updated
   // (mirrors codex-rs/tui's GoalStatusIndicator, which is derived purely
   // from ThreadGoal.status rather than a local UI toggle).
   const threadGoal = useThreadGoal();
 
+  const paste = useComposerPaste(
+    draftScope,
+    (paths) => setImages((previous) => [...new Set([...previous, ...paths])]),
+    appendFileLinks,
+    appendInputValue
+  );
   const editorRef = useRef<ComposerEditorHandle>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -102,7 +123,7 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (modelBlocked) return;
+    if (modelBlocked || paste.pending) return;
     const text = inputValue.trim();
     if (!text && images.length === 0) {
       return;
@@ -192,7 +213,7 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
   // turn; it starts by itself once the turn completes.
   const handleQueue = async () => {
     const text = inputValue.trim();
-    if (!currentThreadId || (!text && images.length === 0)) return;
+    if (paste.pending || !currentThreadId || (!text && images.length === 0)) return;
     try {
       await codexService.threadQueueAdd(currentThreadId, text, images);
       setInputValue('');
@@ -251,7 +272,7 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
     setInputValue(handoff.text);
     setImages(handoff.images);
     useWriterConflictStore.getState().setHandoff(null);
-  }, [handoff, setInputValue]);
+  }, [handoff, setInputValue, setImages]);
 
   return (
     <div>
@@ -283,6 +304,11 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
         <QueuedMessages threadId={currentThreadId} running={threadStatus?.type === 'active'} />
 
         <div className="border rounded-xl bg-background shadow-sm focus-within:ring-1 focus-within:ring-ring transition-all overflow-hidden">
+          {paste.pending && (
+            <output className="block px-3 pt-2 text-xs text-muted-foreground">
+              {t('composer.savingAttachments', { defaultValue: 'Adding attachments…' })}
+            </output>
+          )}
           {images.length > 0 && (
             <div className="flex gap-2 p-3 pb-0 overflow-x-auto">
               {images.map((path, index) => (
@@ -294,8 +320,11 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
                   />
                   <button
                     type="button"
+                    aria-label={t('composer.removeAttachment', {
+                      defaultValue: 'Remove attachment',
+                    })}
                     onClick={() => setImages((prev) => prev.filter((_, i) => i !== index))}
-                    className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute -top-1 -right-1 bg-secondary text-secondary-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -304,7 +333,12 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
             </div>
           )}
 
-          <div ref={wrapperRef} className="max-h-64 overflow-y-auto px-3 pt-3">
+          <div
+            ref={wrapperRef}
+            onPasteCapture={paste.onPasteCapture}
+            onKeyDownCapture={paste.onKeyDownCapture}
+            className="max-h-64 overflow-y-auto px-3 pt-3"
+          >
             <ComposerEditor
               ref={editorRef}
               value={inputValue}
@@ -403,8 +437,10 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
                       className="h-10 w-10 md:h-8 md:w-8 rounded-full"
                       aria-label={t('composer.queueMessage')}
                       title={t('composer.queueMessage')}
-                      disabled={modelBlocked || (!inputValue.trim() && images.length === 0)}
-                      onClick={() => void handleQueue()}
+                      disabled={
+                        modelBlocked || paste.pending || (!inputValue.trim() && images.length === 0)
+                      }
+                      onClick={handleQueue}
                     >
                       <ListPlus className="w-4 h-4" />
                     </Button>
@@ -423,7 +459,9 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
                   <Button
                     type="submit"
                     aria-label={t('composer.sendMessage')}
-                    disabled={modelBlocked || (!inputValue.trim() && images.length === 0)}
+                    disabled={
+                      modelBlocked || paste.pending || (!inputValue.trim() && images.length === 0)
+                    }
                     size="icon"
                     className="h-10 w-10 md:h-8 md:w-8 rounded-full"
                   >

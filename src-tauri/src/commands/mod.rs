@@ -1,3 +1,4 @@
+pub mod clipboard;
 pub mod automation;
 pub mod codex;
 pub mod dictation;
