@@ -32,3 +32,6 @@ codexia-db = { path = "../db" }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 winreg = "0.52"
+
+[dev-dependencies]
+tower = { workspace = true }

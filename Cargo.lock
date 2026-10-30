@@ -823,7 +823,7 @@ dependencies = [
 
 [[package]]
 name = "codex-lemma"
-version = "0.1.17"
+version = "0.1.18"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -892,7 +892,7 @@ dependencies = [
 
 [[package]]
 name = "codexia-automation"
-version = "0.1.17"
+version = "0.1.18"
 dependencies = [
  "async-trait",
  "chrono",
@@ -911,7 +911,7 @@ dependencies = [
 
 [[package]]
 name = "codexia-codex"
-version = "0.1.17"
+version = "0.1.18"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -933,6 +933,7 @@ dependencies = [
  "tokio",
  "toml 0.9.12+spec-1.1.0",
  "toml_edit 0.20.7",
+ "tower",
  "uuid",
  "walkdir",
  "winreg 0.52.0",
@@ -940,7 +941,7 @@ dependencies = [
 
 [[package]]
 name = "codexia-db"
-version = "0.1.17"
+version = "0.1.18"
 dependencies = [
  "anyhow",
  "chrono",
@@ -954,7 +955,7 @@ dependencies = [
 
 [[package]]
 name = "codexia-git"
-version = "0.1.17"
+version = "0.1.18"
 dependencies = [
  "anyhow",
  "gix",
@@ -966,7 +967,7 @@ dependencies = [
 
 [[package]]
 name = "codexia-shared"
-version = "0.1.17"
+version = "0.1.18"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1005,7 +1006,7 @@ dependencies = [
 
 [[package]]
 name = "codexia-web"
-version = "0.1.17"
+version = "0.1.18"
 dependencies = [
  "anyhow",
  "async-trait",

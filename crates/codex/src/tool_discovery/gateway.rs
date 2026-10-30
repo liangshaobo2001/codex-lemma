@@ -8,6 +8,15 @@ use std::{collections::{BTreeMap,BTreeSet},hash::{Hash,Hasher},sync::Arc,time::{
 use tokio::sync::{Mutex,RwLock,mpsc};
 use std::sync::atomic::{AtomicBool,Ordering};
 
+// Request JSON can include base64 images from the retained conversation.
+const MAX_REQUEST_BYTES: usize = 1024 * 1024 * 1024;
+
+fn router(shared: Arc<Shared>) -> Router {
+    Router::new().route("/{secret}/{route}/responses",post(responses))
+        .route("/{secret}/{route}/responses/compact",post(compact))
+        .layer(DefaultBodyLimit::max(MAX_REQUEST_BYTES)).with_state(shared)
+}
+
 #[derive(Clone,Debug,Default,Serialize,Deserialize)]
 #[serde(rename_all="camelCase",deny_unknown_fields)]
 pub struct Policy { #[serde(default)] pub selected: BTreeSet<String> }
@@ -66,9 +75,7 @@ impl Gateway {
         let shared=Arc::new(Shared{reviewer:RwLock::new(None),secret:uuid::Uuid::new_v4().simple().to_string(),
             client:reqwest::Client::builder().redirect(reqwest::redirect::Policy::none()).connect_timeout(Duration::from_secs(10)).build().map_err(|e|e.to_string())?,
             routes:RwLock::new(BTreeMap::new()),capabilities:Mutex::new(BTreeMap::new()),policy_path,events,metrics});
-        let router=Router::new().route("/{secret}/{route}/responses",post(responses))
-            .route("/{secret}/{route}/responses/compact",post(compact))
-            .layer(DefaultBodyLimit::max(16*1024*1024)).with_state(Arc::clone(&shared));
+        let router=router(Arc::clone(&shared));
         let server=tokio::spawn(async move { let _=axum::serve(listener,router).await; });
         Ok(Self{shared,address,server:server.abort_handle()})
     }
@@ -329,6 +336,46 @@ async fn compact(State(shared):State<Arc<Shared>>,Path((secret,id)):Path<(String
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn requests_and_compaction_accept_json_above_the_old_16_mib_limit() {
+        struct Sink;impl EventSink for Sink{fn emit(&self,_:&str,_:Value){}}
+        let directory=tempfile::tempdir().unwrap();
+        let gateway=Gateway::start_with_policy_path(Arc::new(Sink),directory.path().join("policy.json")).await.unwrap();
+        let json=serde_json::to_vec(&json!({"input":"x".repeat(17*1024*1024)})).unwrap();
+        for endpoint in ["responses","responses/compact"] {
+            let request=axum::http::Request::post(format!("/wrong/route/{endpoint}"))
+                .header("content-type","application/json").body(Body::from(json.clone())).unwrap();
+            let response=router(Arc::clone(&gateway.shared)).oneshot(request).await.unwrap();
+            // The JSON reached route authentication instead of failing extraction.
+            assert_eq!(response.status(),StatusCode::NOT_FOUND);
+        }
+    }
+
+    #[tokio::test]
+    async fn one_gib_limit_is_enforced_without_allocating_a_gib() {
+        struct Sink;impl EventSink for Sink{fn emit(&self,_:&str,_:Value){}}
+        let directory=tempfile::tempdir().unwrap();
+        let gateway=Gateway::start_with_policy_path(Arc::new(Sink),directory.path().join("policy.json")).await.unwrap();
+        let chunk=axum::body::Bytes::from(vec![b' ';1024*1024]);
+        for endpoint in ["responses","responses/compact"] {
+            let polled=Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            let count=Arc::clone(&polled);
+            let chunk=chunk.clone();
+            // Every frame shares one backing allocation. The final frame exceeds
+            // the limit, so extraction fails before coalescing/parsing the JSON.
+            let frames=futures::stream::iter((0..1025).map(move |_| {
+                count.fetch_add(1,Ordering::SeqCst);
+                Ok::<_,std::io::Error>(chunk.clone())
+            }));
+            let request=axum::http::Request::post(format!("/wrong/route/{endpoint}"))
+                .header("content-type","application/json").body(Body::from_stream(frames)).unwrap();
+            let response=router(Arc::clone(&gateway.shared)).oneshot(request).await.unwrap();
+            assert_eq!(response.status(),StatusCode::PAYLOAD_TOO_LARGE);
+            assert_eq!(polled.load(Ordering::SeqCst),1025);
+        }
+    }
     #[test]
     fn cache_is_scoped_to_endpoint_model_and_credentials_but_not_session_trace() {
         let route=Route{thread_id:"fixture".into(),provider:"local".into(),base_url:"http://127.0.0.1:1/v1".into(),auth_headers:vec!["authorization".into()],closed:AtomicBool::new(false),session:Arc::new(Mutex::new(relay::Session::default())),status:Mutex::new(("waiting".into(),None,None)),last_model:Mutex::new(None),capability_keys:Mutex::new(BTreeSet::new())};

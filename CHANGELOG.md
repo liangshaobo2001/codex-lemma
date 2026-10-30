@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.1.18] - 2026-10-30
+
+- Raise the local Responses and compaction request-body limit from 16 MiB to 1 GiB so retained image history can pass through the adapter. Add coverage for requests above the old limit and enforcement of the new boundary.
+
 ## [0.1.17] - 2026-10-27
 
 - Fix provider switching with immediate thread unloading: wait for the CLI's actual shutdown notification before restoring the chat, including tool-discovery rebinding.
