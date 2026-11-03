@@ -20,6 +20,16 @@ export const zh = {
     donate: '捐助',
   },
   settings: {
+    lan: {
+      checking: '正在读取状态…', statusUnavailable: '状态暂不可用', refresh: '刷新状态',
+      title: '手机 · 局域网连接', enabled: '已开启', disabled: '已关闭',
+      stop: '关闭并断开设备', start: '开启',
+      addressLabel: '电脑的内网 IPv4 地址', addressPlaceholder: '电脑内网地址，例如 192.168.1.10',
+      description: '手机与电脑连接同一局域网。首次连接需要在手机中信任本机证书；使用手机时请保持 Lemma 运行。',
+      certificate: '下载手机所需证书', generateCode: '生成两分钟配对码',
+      codeLabel: '配对码', copyCode: '复制配对码', help: '首次连接帮助',
+      helpText: 'iPhone：从电脑转存并安装证书描述文件，在“关于本机 → 证书信任设置”启用完全信任。Android：从安全设置安装 CA 证书。仅信任从这台电脑取得的证书。浏览器拒绝证书时，先完成信任设置。已开启的入口和设备配对会在重启后恢复；关闭入口会撤销所有设备配对。防火墙如需放行，仅允许私人网络。',
+    },
     reviewer: {
       unavailable: '不可用（需要人工审批）',
       title: '主模型与审核模型',
@@ -155,6 +165,11 @@ export const zh = {
     unknownError: '未知',
   },
   composer: {
+    steerSending: '正在发送…',
+    steerWaiting: '等待接收',
+    steerFailed: '消息未发送',
+    steerRetry: '重试',
+    steerDismiss: '移除',
     plan: '计划',
     planMode: '计划模式',
     askApproval: '请示批准',

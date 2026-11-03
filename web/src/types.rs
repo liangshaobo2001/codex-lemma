@@ -20,6 +20,7 @@ use crate::terminal::WebTerminalState;
 
 #[derive(Clone)]
 pub struct WebServerState {
+    pub lan: std::sync::Arc<crate::lan::LanControl>,
     pub codex_state: Option<Arc<AppState>>,
     /// Absent when the automation scheduler failed to start.
     pub automation: Option<AutomationHandle>,
@@ -50,6 +51,7 @@ impl WebServerState {
     ) -> Self {
         let event_hub = EventHub::spawn_from(&event_tx);
         Self {
+            lan: Default::default(),
             codex_state,
             automation,
             sleep_state,

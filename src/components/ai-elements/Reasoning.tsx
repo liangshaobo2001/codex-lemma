@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Markdown } from '@/components/Markdown';
 import {
   TraceCollapsible,
@@ -17,47 +17,53 @@ interface ReasoningProps {
 }
 
 /**
- * The agent's thinking. While it streams (local fork, like zcode): the title over a five-line window of grey
- * text that follows the end. Once done: a collapsed line whose body holds the full reasoning text.
+ * Thinking stays collapsed by default, with a single-line live tail beside the title.
+ * Expanding is a user choice and is preserved when streaming finishes.
  */
 export function Reasoning({ title, text, running, defaultOpen = false }: ReasoningProps) {
   const windowRef = useRef<HTMLDivElement>(null);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: text is the trigger; follow the stream to its end
-  useEffect(() => {
-    const el = windowRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [text]);
+  const previewRef = useRef<HTMLSpanElement>(null);
+  const [open, setOpen] = useState(defaultOpen);
+  const preview = text.slice(-256).replace(/\s+/g, ' ').trim();
+  useLayoutEffect(() => {
+    if (!running || !text) return;
+    if (open) {
+      const el = windowRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    } else {
+      const el = previewRef.current;
+      if (el) el.scrollLeft = el.scrollWidth;
+    }
+  }, [text, running, open]);
 
   const line = (
-    <TraceLine status={running ? 'running' : undefined}>
-      <TraceTitle>{title}</TraceTitle>
+    <TraceLine status={running ? 'running' : undefined} className="flex-1">
+      <TraceTitle className="shrink-0">{title}</TraceTitle>
+      {running && !open && preview && (
+        <span
+          ref={previewRef}
+          data-reasoning-preview=""
+          aria-hidden="true"
+          className="min-w-0 flex-1 overflow-hidden whitespace-nowrap text-muted-foreground/70"
+        >
+          {preview}
+        </span>
+      )}
     </TraceLine>
   );
 
-  if (running) {
-    return (
-      <div className="flex min-w-0 flex-col">
-        {line}
-        {text.trim().length > 0 && (
-          <div
-            ref={windowRef}
-            className="mt-1.5 mb-1 ml-[calc(--spacing(2)-1px)] max-h-[6.5rem] min-w-0 overflow-y-auto border-l pr-1 pl-4 text-sm leading-[1.3rem] whitespace-pre-wrap wrap-break-word text-muted-foreground [scrollbar-width:none]"
-          >
-            {text}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (text.trim().length === 0) return line;
+  if (!running && text.trim().length === 0) return line;
 
   return (
-    <TraceCollapsible defaultOpen={defaultOpen}>
-      <TraceCollapsibleTrigger>{line}</TraceCollapsibleTrigger>
+    <TraceCollapsible open={open} onOpenChange={setOpen}>
+      <TraceCollapsibleTrigger aria-label={title} className={running ? 'w-full' : undefined}>{line}</TraceCollapsibleTrigger>
       {/* Reasoning summaries are Markdown (e.g. a bold heading per step). */}
       <TraceCollapsibleContent>
-        <Markdown value={text} className="text-sm text-muted-foreground" />
+        {open && (running ? (
+          <div ref={windowRef} className="max-h-[6.5rem] overflow-y-auto whitespace-pre-wrap wrap-break-word text-sm text-muted-foreground">
+            {text}
+          </div>
+        ) : <Markdown value={text} className="text-sm text-muted-foreground" />)}
       </TraceCollapsibleContent>
     </TraceCollapsible>
   );

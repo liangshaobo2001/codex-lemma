@@ -1,0 +1,51 @@
+/* Opt-in visual proposal. This file is only imported by the isolated fixture. */
+html[data-lemma-design="after"] [data-design-user] {
+  border: 0;
+  border-radius: 20px;
+  background: #f2f2f2;
+  padding: 12px 18px;
+}
+html[data-lemma-design="after"] [data-design-composer] {
+  border-radius: 24px;
+  border-color: #e4e4e4;
+  box-shadow: 0 2px 12px #00000008;
+}
+html[data-lemma-design="after"] [data-design-composer] [contenteditable] {
+  min-height: 76px;
+  line-height: 1.65;
+}
+html[data-lemma-design="after"] [data-design-composer] > .border-t {
+  border-top-color: transparent;
+  background: transparent;
+  padding: 4px 6px 6px;
+}
+html[data-lemma-design="after"] [data-slot="sidebar-inner"] {
+  background: #fafafa;
+}
+html[data-lemma-design="after"] [data-slot="sidebar-container"] {
+  border-color: #ededed;
+}
+html[data-lemma-design="after"] [data-sidebar="sidebar"] button {
+  font-weight: 400;
+  border-radius: 10px;
+}
+html[data-lemma-design="after"] [data-tauri-drag-region] button {
+  box-shadow: none;
+  border-radius: 10px;
+}
+html[data-lemma-design="after"] [data-slot="message-scroller-content"] {
+  gap: 36px;
+}
+html[data-lemma-design="after"] [data-slot="message-scroller-content"] :is(h1,h2,h3) {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+html[data-lemma-design="after"] [data-design-composer] button[type="submit"] {
+  background: #242424;
+  color: #fff;
+}
+html.dark[data-lemma-design="after"] [data-design-user] { background: #303030; }
+html.dark[data-lemma-design="after"] [data-design-composer] { border-color: #414141; box-shadow: 0 2px 12px #00000015; }
+html.dark[data-lemma-design="after"] [data-slot="sidebar-inner"] { background: #191919; }
+html.dark[data-lemma-design="after"] [data-slot="sidebar-container"] { border-color: #303030; }
+html.dark[data-lemma-design="after"] [data-design-composer] button[type="submit"] { background: #eee; color: #202020; }

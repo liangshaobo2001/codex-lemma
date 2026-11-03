@@ -1,5 +1,7 @@
 pub mod watcher;
 pub mod auth;
+pub mod pairing;
+pub mod lan;
 pub mod events;
 mod handlers;
 pub mod router;

@@ -1,0 +1,197 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content"><meta name="referrer" content="no-referrer"><title>Lemma · 手机</title>
+<style>body{font:16px system-ui;margin:0;color:#242424;background:#fafafa}main{max-width:780px;margin:auto;padding:16px}button,input,textarea,select{font:inherit;border:1px solid #ccc;border-radius:10px;padding:10px;background:white;color:inherit}button{cursor:pointer}button:disabled{opacity:.5}header,.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}header{justify-content:space-between}h1{font-size:22px}textarea{width:100%;box-sizing:border-box;min-height:90px}article{border:1px solid #ddd;border-radius:12px;padding:12px;margin:12px 0;background:white;overflow-wrap:anywhere}pre{white-space:pre-wrap;font:14px ui-monospace;max-height:350px;overflow:auto}#message{color:#666;min-height:24px}#threads button{display:block;text-align:left;width:100%;margin:8px 0}#history article{white-space:pre-wrap}small{color:#666}#composer{position:sticky;bottom:0;background:#fafafa;padding:10px 0}details{margin:8px 0}#live{white-space:pre-wrap;max-height:220px;overflow:auto;color:#666}</style>
+<main><header id="topbar"><button id="back" type="button" aria-label="返回会话列表" hidden>← 会话</button><h1 id="title">Lemma</h1></header><p id="message" role="status">页面正在初始化，请稍候…</p><noscript><p>此页面需要 JavaScript。请在 Chrome 的网站设置中允许本站使用 JavaScript，然后刷新页面。</p></noscript>
+<section id="pair"><h2>配对电脑</h2><p>在电脑的 Lemma 设置中生成配对码（两分钟内有效）。</p><form id="pairform"><input id="code" aria-label="配对码" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="8" required><button id="pairButton" type="submit" disabled>配对</button></form></section>
+<section id="app" hidden><section id="recents"><div class="row recent-heading"><h2>Recents</h2><button id="refreshThreads" type="button" aria-label="刷新会话列表">刷新</button></div><section id="threads" aria-label="最近会话"></section><p id="emptyThreads" hidden>暂无会话</p><button id="moreThreads" hidden>更多会话</button></section><section id="chat" hidden><button id="older" hidden>加载更早消息</button><button id="latest" hidden>回到最新消息</button><section id="history"></section><p id="activityStatus" role="status" hidden></p><section id="live"></section><section id="approvals"></section><form id="composer"><textarea id="input" aria-label="消息" placeholder="继续这个会话…" required></textarea><div class="composer-actions"><button id="send" class="composer-action" type="submit" aria-label="发送" title="发送" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m-7 7 7-7 7 7"/></svg></button><button id="stop" class="composer-action" type="button" aria-label="停止当前任务" title="停止当前任务" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg></button></div></form></section></section></main>
+<style>.recent-heading{justify-content:space-between;flex-wrap:nowrap}.recent-heading h2{font-size:16px;font-weight:400;color:#737373}.recent-heading button{border:0;background:transparent;font-size:14px;color:#737373}#threads button{display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:8px;align-items:center;border:0;border-radius:12px;background:transparent;padding:14px 12px;margin:3px 0;min-height:52px;font-weight:400}#threads button:hover,#threads button:focus-visible{background:#ededed}#threads button[aria-current=true]{background:#e5e5e5}.thread-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}.thread-age{font-size:13px;color:#737373;white-space:nowrap}.thread-status{width:12px;height:12px;box-sizing:border-box}.thread-status.active{border:2px solid #aaa;border-right-color:transparent;border-radius:50%;animation:thread-spin 1s linear infinite}@keyframes thread-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.thread-status.active{animation:none}}@media(prefers-color-scheme:dark){body,#composer{background:#181818;color:#eee}button,input,textarea,select,article{background:#202020;border-color:#444}#threads button:hover,#threads button:focus-visible{background:#2c2c2c}#threads button[aria-current=true]{background:#353535}.thread-age,.recent-heading h2,.recent-heading button,small,#message{color:#aaa}}</style>
+<style>
+
+#composer{border:1px solid #ddd;border-radius:24px;background:#fff;padding:10px 12px 8px;margin-bottom:env(safe-area-inset-bottom);box-shadow:0 2px 8px #0000000a}
+#composer textarea{display:block;border:0;border-radius:0;background:transparent;min-height:72px;max-height:200px;resize:none;padding:4px 2px 8px;outline:none;line-height:1.5}
+#composer:focus-within{border-color:#999}.composer-actions{display:flex;justify-content:flex-end;align-items:center;min-height:44px}
+.composer-action{display:grid;place-items:center;width:44px;height:44px;padding:10px;flex-shrink:0;border:0;border-radius:50%;background:#242424;color:#fff}
+.composer-action[hidden]{display:none}.composer-action svg{width:24px;height:24px}.composer-action:disabled{opacity:.4}
+.composer-action:focus-visible{outline:2px solid #737373;outline-offset:3px}
+@media(prefers-color-scheme:dark){#composer{background:#202020;border-color:#444}#composer:focus-within{border-color:#aaa}.composer-action{background:#eee;color:#202020}}
+
+#topbar{position:sticky;top:0;z-index:10;background:#fafafa;border-bottom:1px solid #ddd;min-height:52px;flex-wrap:nowrap;justify-content:flex-start;padding-top:env(safe-area-inset-top);gap:12px}
+#topbar h1{font-size:17px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:12px 0;min-width:0}
+#back{border:0;background:transparent;flex-shrink:0;padding:10px 4px;font-size:15px}
+.activity-group{color:#737373;border:0;margin:12px 0;padding:0}
+.activity-group>summary,.activity-step>summary{cursor:pointer;min-height:36px;line-height:36px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.activity-group>summary{font-size:14px}.activity-group>summary::marker,.activity-step>summary::marker{font-size:11px}
+.activity-steps{border-left:1px solid #ddd;padding-left:12px;margin:4px 0 8px 4px}
+.activity-step{margin:0}.activity-step>summary{font-size:14px}
+.activity-step pre{margin:4px 0 12px;font-size:13px;line-height:1.5;max-height:240px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+#activityStatus{font-size:14px;color:#737373;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#live{white-space:normal;max-height:none;overflow:visible}#live article{white-space:pre-wrap}
+@media(prefers-color-scheme:dark){#topbar{background:#181818;border-color:#444}.activity-group,#activityStatus{color:#aaa}.activity-steps{border-color:#444}}
+
+body{font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;background:#fff;-webkit-font-smoothing:antialiased}
+main{padding:0 16px 12px}#chat{display:flex;flex-direction:column;min-height:calc(100dvh - 104px)}#chat[hidden]{display:none}#history{flex:1}#topbar{background:#fff;min-height:56px;border-bottom:0}#topbar h1{font-weight:500;font-size:16px}
+#message{font-size:12px;line-height:18px;min-height:18px;margin:4px 0 14px;color:#8a8a8a}
+#history .message,#live .message{border:0;border-radius:0;background:transparent;padding:0;margin:24px 0;line-height:1.65}
+#history .message-user{width:fit-content;max-width:85%;margin-left:auto;padding:10px 16px;background:#f1f1f1;border-radius:20px}
+#history .message-assistant,#live .message-assistant{padding:0 2px}
+#older,#latest{min-height:36px;padding:6px 12px;font-size:13px;border-radius:999px;border-color:#e5e5e5;background:transparent}
+.activity-group{margin:14px 0}.activity-steps{border-color:#e5e5e5}.activity-group>summary,.activity-step>summary{font-weight:400}
+#composer{margin-top:16px;box-shadow:0 2px 12px #00000008;border-color:#e5e5e5}#composer textarea{font:inherit;line-height:1.5}
+#approvals article{border-radius:18px;font-size:14px}#approvals button{border-radius:999px;min-height:44px;margin:4px 6px 4px 0}
+#pair input{border-radius:14px;min-width:0}#pairform{display:flex;flex-wrap:wrap;gap:8px}#pairButton{border-radius:999px}
+@media(prefers-color-scheme:dark){#composer{border-color:#444}#composer:focus-within{border-color:#777}body,#topbar{background:#181818}#history .message-user{background:#303030}#history .message-assistant,#live .message-assistant{background:transparent}.activity-steps{border-color:#414141}#older,#latest{border-color:#444}#message{color:#929292}}
+
+</style>
+<script>
+window.addEventListener('error',function(e){document.getElementById('message').textContent='页面初始化失败：'+(e.message||'脚本未能运行')+'。请刷新页面或更新 Chrome。';});
+window.addEventListener('unhandledrejection',function(e){document.getElementById('message').textContent='连接未完成：'+String(e.reason&&e.reason.message||e.reason||'未知错误');});
+</script><script>
+'use strict';
+const $=id=>document.getElementById(id);let historyRevision=0,expanded=new Set(),liveMessages=new Map(),thread=null,turn=null,cursor=null,listCursor=null,entries=[],busy=false,stopPending=false,lastHistory='',source=null,viewingOlder=false,lastPending='',listRows=[],listRevision=0,listLoading=false,selectedThreadId=null,listRefreshTimer=null;
+function status(t){$('message').textContent=t}
+async function api(path,body){const r=await fetch(path,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),credentials:'same-origin',...(path==='/pair'?{signal:AbortSignal.timeout(15000)}:{})});if(r.status===401){$('pair').hidden=false;$('app').hidden=true;throw Error(path==='/pair'?'配对码无效、已过期或已使用，请在电脑生成一个新码。':'尚未配对，请在电脑生成配对码。')}if(!r.ok)throw Error((await r.text()).slice(0,500)||`请求失败（${r.status}）`);return r.status===204?null:r.text().then(t=>t?JSON.parse(t):null)}
+function el(tag,text){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n}
+function action(label,fn){const b=el('button',label);b.type='button';b.onclick=async()=>{b.disabled=true;try{await fn()}catch(e){status(e.message)}finally{b.disabled=false}};return b}
+function threadTitle(t){return String(t.name??(t.preview||'新会话')).replace(/\s+/g,' ').slice(0,200)}
+function threadAge(seconds){if(!Number.isFinite(seconds)||seconds<=0)return '';const delta=Math.max(0,Date.now()/1000-seconds);return delta<60?'now':delta<3600?Math.floor(delta/60)+'m':delta<86400?Math.floor(delta/3600)+'h':Math.floor(delta/86400)+'d'}
+function renderList(){const focused=document.activeElement?.dataset?.threadId;$('threads').replaceChildren();for(const t of listRows){const row=action('',()=>openThread(t));row.dataset.threadId=t.id;row.setAttribute('aria-current',String(t.id===selectedThreadId));const indicator=el('span');indicator.className='thread-status'+(t.status?.type==='active'?' active':'');if(t.status?.type==='active'){indicator.setAttribute('role','img');indicator.setAttribute('aria-label','正在运行')}else indicator.setAttribute('aria-hidden','true');const title=el('span',threadTitle(t));title.className='thread-title';const age=el('span',threadAge(t.updatedAt));age.className='thread-age';row.append(indicator,title,age);$('threads').append(row)}$('emptyThreads').hidden=listRows.length>0;if(focused){const row=Array.from($('threads').children).find(n=>n.dataset.threadId===focused);row?.focus({preventScroll:true})}}
+function uniqueThreads(rows){const byId=new Map();for(const row of rows){if(!row?.id)continue;const previous=byId.get(row.id);if(!previous||(row.updatedAt||0)>=(previous.updatedAt||0))byId.set(row.id,row)}return Array.from(byId.values()).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))}
+async function list(more=false){if(more&&(!listCursor||listLoading))return;const revision=++listRevision;listLoading=true;$('moreThreads').disabled=true;$('refreshThreads').disabled=true;try{const result=await api('/api/codex/thread/list',{limit:more?40:Math.max(40,listRows.length),archived:false,modelProviders:[],sortKey:'updated_at',sortDirection:'desc',useStateDbOnly:true,cursor:more?listCursor:null});if(revision!==listRevision)return;const rows=more?[...listRows,...(result.data||[])]:result.data||[];listRows=uniqueThreads(rows);listCursor=result.nextCursor&&(!more||result.nextCursor!==listCursor)?result.nextCursor:null;renderList();$('moreThreads').hidden=!listCursor}finally{if(revision===listRevision){listLoading=false;$('moreThreads').disabled=false;$('refreshThreads').disabled=false}}}
+function refreshListSoon(){if(thread||$('app').hidden||document.hidden||listRefreshTimer!==null)return;listRefreshTimer=setTimeout(()=>{listRefreshTimer=null;list().catch(e=>status(e.message))},200)}
+function content(item){
+  if(item.type==='userMessage')return (item.content||[]).map(c=>c.text||'[附件]').join('\n');
+  if(item.type==='reasoning')return [...(item.summary||[]),...(item.content||[])].join('\n\n');
+  return item.text||item.aggregatedOutput||item.command||'';
+}
+function entryKey(entry,index){const item=entry.item||entry;return (entry.turnId||'unknown')+':'+(item.id||index)}
+function stepTitle(item){
+  const labels={reasoning:'思考',commandExecution:'运行命令',mcpToolCall:'调用工具',dynamicToolCall:'调用工具',functionCall:'调用工具',functionCallOutput:'工具结果',fileChange:'修改文件',webSearch:'搜索网页',contextCompaction:'整理上下文'};
+  const label=labels[item.type]||'活动';
+  const detail=item.type==='commandExecution'?item.command:item.tool||item.name||item.query||'';
+  return label+(detail?' · '+String(detail).replace(/\s+/g,' ').slice(0,100):'');
+}
+function disclosure(key,label,build,className){
+  const node=el('details');node.dataset.disclosure=key;node.className=className;
+  node.append(el('summary',label));let built=false;
+  const update=()=>{if(node.open){expanded.add(key);if(!built){built=true;node.append(build())}}else expanded.delete(key)};
+  node.ontoggle=()=>{if(node.isConnected)update()};
+  if(expanded.has(key)){node.open=true;update()}
+  return node;
+}
+function activityGroup(group){
+  return disclosure('group:'+group[0].key,'活动 · '+group.length+' 步',()=>{
+    const body=el('div');body.className='activity-steps';
+    for(const {entry,key} of group){const item=entry.item||entry;
+      body.append(disclosure('step:'+key,stepTitle(item),()=>{
+        const text=content(item)||JSON.stringify(item,null,2),node=el('div');
+        node.append(el('pre',text.slice(0,12000)));
+        if(entry.truncated||text.length>12000)node.append(el('small','（较长内容仅显示预览）'));
+        return node;
+      },'activity-step'));
+    }
+    return body;
+  },'activity-group');
+}
+function messageNode(role,text,id){
+  const node=el('article');node.className='message message-'+role;node.dataset.messageId=id||'';
+  node.setAttribute('aria-label',role==='user'?'你的消息':'助手回复');node.append(el('div',text));return node;
+}
+function renderLive(){
+  $('live').replaceChildren();if(viewingOlder||!thread)return;
+  const shown=new Set(entries.map(entry=>(entry.item||entry).id));
+  for(const [id,message] of liveMessages){
+    if(shown.has(id))continue;
+    $('live').append(messageNode('assistant',message.text,id));
+  }
+}
+function render(items){
+  const root=$('history'),valid=new Set();let group=[];
+  const flush=()=>{if(group.length){root.append(activityGroup(group));group=[]}};
+  for(let index=0;index<items.length;index++){
+    const entry=items[index],item=entry.item||entry,key=entryKey(entry,index);
+    if(item.type!=='userMessage'&&item.type!=='agentMessage'){
+      if(group.length&&group[0].entry.turnId!==entry.turnId)flush();
+      if(!group.length)valid.add('group:'+key);valid.add('step:'+key);group.push({entry,key});continue;
+    }
+    flush();let text=content(item);const live=liveMessages.get(item.id);
+    if(live){if(text.length>=live.text.length)liveMessages.delete(item.id);else text=live.text}
+    if(!text)continue;
+    const node=messageNode(item.type==='userMessage'?'user':'assistant',text,item.id);
+    if(entry.truncated)node.append(el('small','（较长内容仅显示预览）'));root.append(node);
+  }
+  flush();expanded=new Set([...expanded].filter(key=>valid.has(key)));renderLive();
+}
+function updateComposer(){
+  const running=Boolean(turn);$('send').hidden=running;$('stop').hidden=!running;
+  $('send').disabled=busy||!thread||!$('input').value.trim();
+  $('send').setAttribute('aria-busy',String(busy&&!running));
+  $('stop').disabled=stopPending;$('stop').setAttribute('aria-busy',String(stopPending));
+}
+$('input').addEventListener('input',updateComposer);
+async function loadHistory(older=false){if(!thread||(!older&&viewingOlder))return;if(older){viewingOlder=true;$('latest').hidden=false}const selected=thread.id,revision=++historyRevision;const result=await api('/api/codex/thread/history/page',{threadId:selected,cursor:older?cursor:null});if(thread?.id!==selected||revision!==historyRevision)return;const items=result.entries||[];const active=(result.turns||[]).find(t=>t.status==="inProgress");if(!older){if(active)turn=active.id;else if(!turn||(result.turns||[]).some(t=>t.id===turn&&['completed','failed','interrupted'].includes(t.status)))turn=null;if(!turn){busy=false;stopPending=false}}updateComposer();if(older){entries=[...items,...entries].slice(0,400)}else{const stamp=JSON.stringify([items,turn]);if(stamp===lastHistory)return;lastHistory=stamp;entries=items}cursor=result.nextCursor;$('older').hidden=!cursor;for(const node of $('history').querySelectorAll('details')){if(node.open)expanded.add(node.dataset.disclosure);else expanded.delete(node.dataset.disclosure)}$('history').replaceChildren();render(entries.slice(-400));}
+async function openThread(t,push=true){thread=t;selectedThreadId=t.id;turn=null;viewingOlder=false;$('latest').hidden=true;busy=false;stopPending=false;updateComposer();cursor=null;lastHistory='';lastPending='';entries=[];expanded=new Set();liveMessages.clear();$('live').replaceChildren();$('activityStatus').hidden=true;$('history').replaceChildren();$('recents').hidden=true;$('chat').hidden=false;$('back').hidden=false;$('title').textContent=threadTitle(t);if(push)window.history.pushState({lemmaChat:true,threadId:t.id},'','#chat');window.scrollTo(0,0);await loadHistory();await approvals();status('已连接');}
+async function approvals(){if(!thread)return;const selected=thread.id;const result=await api('/api/pending');if(thread?.id!==selected)return;const pending=result.filter(r=>r.params.threadId===thread.id);const stamp=JSON.stringify(pending);if(stamp===lastPending)return;lastPending=stamp;$('approvals').replaceChildren();for(const r of pending){const card=el('article');card.append(el('h3','需要你的决定'));const p=r.params;card.append(el('pre',JSON.stringify(p,null,2)));const base={request_id:r.requestId};let path,allow,deny;
+if(r.method.includes('commandExecution')){path='command-execution';allow={...base,decision:'accept'};deny={...base,decision:'decline'}}
+else if(r.method.includes('fileChange')){path='file-change';allow={...base,decision:'accept'};deny={...base,decision:'decline'}}
+else if(r.method.includes('permissions')){path='permissions';allow={...base,permissions:p.permissions,scope:'turn'};deny={...base,permissions:{},scope:'turn'}}
+else if(r.method.includes('elicitation')){path='mcp-elicitation';deny={...base,action:'decline'};const field=el('textarea');field.placeholder='表单回复（JSON）';card.append(field);card.append(action('提交回复',async()=>{await api('/api/codex/approval/'+path,{...base,action:'accept',content:field.value?JSON.parse(field.value):{}});lastPending='';await approvals()}));}
+else{path='user-input';const fields=[];for(const q of p.questions||[]){card.append(el('label',q.question));let field;if(q.options?.length){field=el('select');for(const option of q.options){const n=el('option',option.label);n.value=option.label;field.append(n)}}else field=el('input');field.setAttribute('aria-label',q.question);fields.push([q.id,field]);card.append(field)}card.append(action('提交回答',async()=>{await api('/api/codex/approval/user-input',{...base,response:{answers:Object.fromEntries(fields.map(([id,n])=>[id,{answers:[n.value]}]))}});lastPending='';await approvals()}));}
+const respond=async body=>{await api('/api/codex/approval/'+path,body);lastPending='';await approvals()};if(allow)card.append(action('允许这一次',()=>respond(allow)));if(deny)card.append(action('拒绝',()=>respond(deny)));$('approvals').append(card)}}
+function events(){
+  source?.close();source=new EventSource('/api/events?agents=codex');
+  source.onmessage=e=>{
+    const frame=JSON.parse(e.data),p=frame.payload;if(frame.event!=='codex:notification'||!p)return;
+    if(['thread/started','thread/name/updated','thread/status/changed','thread/archived','thread/unarchived','thread/closed','turn/started','turn/completed'].includes(p.method))refreshListSoon();
+    if(!thread||p.params?.threadId!==thread.id)return;
+    if(p.method==='turn/started'){turn=p.params.turn?.id;stopPending=false;updateComposer()}
+    if(p.method==='item/started'){
+      const item=p.params.item;
+      if(item?.type==='agentMessage')$('activityStatus').hidden=true;
+      else if(item?.type!=='userMessage'){$('activityStatus').textContent=item?.type==='reasoning'?'思考中…':'正在执行工具…';$('activityStatus').hidden=false}
+    }
+    if(p.method==='item/agentMessage/delta'){
+      const id=p.params.itemId;if(!id)return;
+      const previous=liveMessages.get(id)?.text||'';liveMessages.set(id,{text:(previous+(p.params.delta||'')).slice(-12000),complete:false});
+      while(liveMessages.size>8)liveMessages.delete(liveMessages.keys().next().value);
+      const existing=Array.from($('history').children).find(node=>node.dataset.messageId===id);
+      if(existing)existing.querySelector('div').textContent=liveMessages.get(id).text;
+      renderLive();
+    }
+    if(p.method==='item/completed'&&p.params.item?.type==='agentMessage'){
+      const item=p.params.item;liveMessages.set(item.id,{text:String(item.text||'').slice(-12000),complete:true});renderLive();loadHistory().catch(e=>status(e.message));
+    }
+    if(p.method==='turn/completed'){
+      turn=null;busy=false;stopPending=false;updateComposer();$('activityStatus').hidden=true;loadHistory().catch(e=>status(e.message));
+    }
+  };
+  source.onerror=()=>status('连接中断，正在重连…');source.onopen=()=>{status('已连接');refreshListSoon()};
+}
+$('pairform').onsubmit=async e=>{e.preventDefault();const button=$('pairButton');if(button.disabled)return;button.disabled=true;button.textContent='正在配对…';status('正在验证配对码…');let accepted=false;try{await api('/pair',{code:$('code').value.trim()});accepted=true;$('code').value='';status('配对成功，正在读取会话…');await boot()}catch(e){if(accepted&&$('app').hidden)status(`配对验证通过，但会话未能载入：${e.message}`);else status(e.name==='TimeoutError'?'配对请求超时，请检查手机与电脑的局域网连接后重试。':e.message)}finally{button.disabled=false;button.textContent='配对'}};
+$('composer').onsubmit=async e=>{
+  e.preventDefault();const text=$('input').value;if(busy||!thread||turn||!text.trim())return;
+  const selected=thread.id;busy=true;updateComposer();
+  try{
+    await api('/api/codex/thread/resume',{threadId:selected,excludeTurns:true});
+    const result=await api('/api/codex/turn/start',{threadId:selected,input:[{type:'text',text,text_elements:[]}]});
+    if(thread?.id!==selected)return;
+    turn=result.turn?.id;if($('input').value===text)$('input').value='';status('任务已发送');
+  }catch(e){if(thread?.id!==selected)return;status(e.message);busy=false}
+  finally{if(thread?.id===selected)updateComposer()}
+};
+$('stop').onclick=async()=>{
+  if(!thread||!turn||stopPending)return;
+  const selected=thread.id,selectedTurn=turn;stopPending=true;updateComposer();
+  try{await api('/api/codex/turn/interrupt',{threadId:selected,turnId:selectedTurn});if(thread?.id===selected&&turn===selectedTurn)status('正在停止任务…')}
+  catch(e){if(thread?.id===selected&&turn===selectedTurn){stopPending=false;updateComposer();status(e.message)}}
+};
+$('latest').onclick=()=>{viewingOlder=false;lastHistory='';$('latest').hidden=true;loadHistory().catch(e=>status(e.message))};$('older').onclick=()=>loadHistory(true).catch(e=>status(e.message));$('moreThreads').onclick=()=>list(true).catch(e=>status(e.message));$('refreshThreads').onclick=()=>list().catch(e=>status(e.message));function showRecents(){thread=null;turn=null;busy=false;stopPending=false;updateComposer();liveMessages.clear();$('live').replaceChildren();$('activityStatus').hidden=true;$('chat').hidden=true;$('recents').hidden=false;$('back').hidden=true;$('title').textContent='Lemma';window.scrollTo(0,0);list().catch(e=>status(e.message))}
+$('back').onclick=()=>{if(window.history.state?.lemmaChat)window.history.back();else showRecents()};
+if(window.lemmaMobilePopState)window.removeEventListener('popstate',window.lemmaMobilePopState);
+window.lemmaMobilePopState=e=>{const target=e.state?.lemmaChat&&listRows.find(t=>t.id===e.state.threadId);if(target)openThread(target,false).catch(e=>status(e.message));else if(thread)showRecents()};
+window.addEventListener('popstate',window.lemmaMobilePopState);
+$('pairButton').disabled=false;
+status('正在连接电脑…');
+async function boot(){window.history.replaceState({lemmaList:true},'',location.pathname+location.search);await list();$('pair').hidden=true;$('app').hidden=false;events();status('已连接')}
+setInterval(()=>{if(document.hidden||!thread)return;approvals().catch(e=>status(e.message));loadHistory().catch(e=>status(e.message))},3000);
+setInterval(()=>{if(!document.hidden&&!thread&&!$('app').hidden&&!listLoading)list().catch(e=>status(e.message))},10000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){events();if(thread){loadHistory().catch(e=>status(e.message));approvals().catch(e=>status(e.message))}else refreshListSoon()}});boot().catch(e=>status(e.message));
+</script></html>

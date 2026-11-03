@@ -6,6 +6,7 @@ import { isRequestMetrics } from './requestMetrics';
 import { LIVE_EVENT_LIMIT } from './threadHistory';
 import { isTranscriptEvent } from './transcriptEvents';
 import type { CodexStore, EventsSlice, ReasoningLive, TurnTiming } from './types';
+import { usePendingSteers } from './usePendingSteers';
 
 export const createEventsSlice: StateCreator<CodexStore, [], [], EventsSlice> = (set) => ({
   events: {},
@@ -24,6 +25,7 @@ export const createEventsSlice: StateCreator<CodexStore, [], [], EventsSlice> = 
   goalEnabled: false,
 
   addEvent: (threadId: string, event: ServerNotification) => {
+    usePendingSteers.getState().observe(threadId, event);
     set((state: CodexStore) => {
       const existingEvents = state.events[threadId] || [];
 

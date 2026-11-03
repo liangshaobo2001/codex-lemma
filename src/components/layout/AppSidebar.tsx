@@ -30,7 +30,7 @@ export function AppSideBar() {
 
   return (
     <>
-      <Sidebar className="border-r border-sidebar-border bg-zinc-100/95 dark:bg-zinc-900/95">
+      <Sidebar className="border-r border-[#ededed] dark:border-[#303030] [&_[data-slot=sidebar-inner]]:bg-[#fafafa] dark:[&_[data-slot=sidebar-inner]]:bg-[#191919] [&_button]:font-normal [&_button]:rounded-[10px]">
         <SidebarHeader className="gap-1 p-1">
           {/* Header row: toggle */}
           <div

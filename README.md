@@ -22,7 +22,7 @@ It is a focused fork of [Codexia v0.58.0](https://github.com/milisp/codexia/tree
 - MCP connectors, skills, scheduled tasks, todos, and local usage statistics.
 - English and Simplified Chinese UI, light/dark themes, and a compact frameless Windows window.
 
-This fork removes the upstream Bots, Claude Code, ACP, remote/mobile UI, publishing, telemetry, and automatic updater flows. Internal Rust crate names may still use Codexia for source compatibility.
+This fork removes the upstream Bots, Claude Code, ACP, publishing, telemetry, and automatic updater flows. It includes an opt-in [LAN phone companion](docs/LAN.md) for existing conversations, messages, and approvals. Internal Rust crate names may still use Codexia for source compatibility.
 
 ## Install
 
@@ -53,7 +53,7 @@ New installs default to **Ask for approval**: workspace operations use the sandb
 
 ## Current scope
 
-Windows x64 is the supported desktop target. Settings → General includes manual, signed updates; downloading and installation each require a separate click. macOS/Linux packages, background automatic updates, and remote access are outside the tested scope. The Windows executable is not Authenticode-signed; updater signatures do not remove the Unknown Publisher prompt. Some Codex features depend on the bundled CLI and provider; a successful greeting does not establish full tool compatibility. Historical-turn loading can be limited by the CLI's app-server API.
+Windows x64 is the supported desktop target. Settings → General includes manual, signed updates; downloading and installation each require a separate click. The LAN companion is a self-use preview, disabled by default, and requires manually trusting the desktop certificate on the phone; physical iOS/Android trust setup is not covered by automated browser tests. macOS/Linux packages, background automatic updates, and public-internet remote access are outside the tested scope. The Windows executable is not Authenticode-signed; updater signatures do not remove the Unknown Publisher prompt. Some Codex features depend on the bundled CLI and provider; a successful greeting does not establish full tool compatibility. Historical-turn loading can be limited by the CLI's app-server API.
 
 ## Development and attribution
 

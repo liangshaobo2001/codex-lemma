@@ -56,7 +56,12 @@ codexia-shared = { path = "../crates/shared" }
 codexia-automation = { path = "../crates/automation" }
 codexia-db = { path = "../crates/db" }
 codexia-codex = { path = "../crates/codex" }
+axum-server = { version = "0.7", features = ["tls-rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rcgen = "0.13"
+sha2 = { workspace = true }
 [dev-dependencies]
+reqwest = { workspace = true, features = ["http2"] }
 # WebSocket client used by the /ws integration tests.
 tokio-tungstenite = "0.24"
 

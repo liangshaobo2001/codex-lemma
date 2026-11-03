@@ -3,6 +3,7 @@
 - [Usage and configuration](USAGE.md)
 - [Custom model providers](PROVIDERS.md)
 - [Privacy and local data](PRIVACY.md)
+- [LAN phone companion](LAN.md)
 - [Building and contributing](../CONTRIBUTING.md)
 - [Packaging and releasing](RELEASING.md)
 

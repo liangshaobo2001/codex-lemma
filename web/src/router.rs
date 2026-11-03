@@ -403,6 +403,13 @@ pub fn create_router(state: WebServerState) -> Router {
         ));
 
     Router::new()
+        .merge(Router::new()
+            .route("/api/lan/status",get(crate::lan::status))
+            .route("/api/lan/start",post(crate::lan::start))
+            .route("/api/lan/stop",post(crate::lan::stop))
+            .route("/api/lan/code",post(crate::lan::code))
+            .route("/api/lan/certificate",get(crate::lan::certificate))
+            .route_layer(middleware::from_fn(crate::lan::local_only)))
         // Liveness probe stays open so a client can tell "desktop unreachable"
         // apart from "desktop rejected my token". It exposes no data.
         .route("/health", get(health_check))

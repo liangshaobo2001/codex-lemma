@@ -8,6 +8,17 @@ vi.mock('@/stores/settings', () => ({useSettingsStore: (selector: (s: unknown) =
 import { ThroughputWidget } from './ThroughputWidget';
 beforeEach(() => { useToolUsage.setState({usage:{}}); state.tokenUsageMap={}; state.throughputMap={}; state.lastThroughputMap={}; });
 describe('composer metrics scope', () => {
+  it('keeps readings available on the icons when their text is collapsed', () => {
+    state.throughputMap.thread={requests:1,ttftMs:700,tokensPerSec:80};
+    state.tokenUsageMap.thread={total:{inputTokens:1000,cachedInputTokens:800}};
+    render(<ThroughputWidget/>);
+    const speed=screen.getByRole('img',{name:/80 tok\/s/});
+    const cache=screen.getByRole('img',{name:/cache 80\.0%/});
+    expect(speed.getAttribute('title')).toContain('80 tok/s');
+    expect(cache.getAttribute('title')).toContain('800 of 1000 cumulative');
+    expect(speed.querySelector('[data-toolbar-metric-label]')).not.toBeNull();
+    expect(cache.querySelector('[data-toolbar-metric-label]')).not.toBeNull();
+  });
   it('keeps the previous reading until the current turn has a valid replacement, without the approximate symbol', () => {
     state.lastThroughputMap.thread={turnId:'old',requests:2,ttftMs:900,tokensPerSec:80};
     state.throughputMap.thread={turnId:'new',requests:0,ttftMs:null,tokensPerSec:null};

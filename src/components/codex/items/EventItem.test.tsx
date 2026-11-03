@@ -76,13 +76,15 @@ describe('EventItem steps', () => {
     expect(screen.getByText('Weighing options')).toBeTruthy();
   });
 
-  it('streams live reasoning text in a window while thinking', () => {
+  it('streams live reasoning in the collapsed Thinking row', () => {
     useCodexStore.setState({
       reasoningLiveMap: { r9: { text: 'weighing the options', startedAtMs: 0, durationMs: null } },
     });
     render(<EventItem event={started({ type: 'reasoning', id: 'r9', summary: [], content: [] })} />);
     expect(screen.getByText('Thinking')).toBeTruthy();
     expect(screen.getByText('weighing the options')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Thinking' }).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByText('weighing the options').hasAttribute('data-reasoning-preview')).toBe(true);
   });
 
   it('shows a started reasoning item as running', () => {

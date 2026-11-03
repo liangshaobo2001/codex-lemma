@@ -8,7 +8,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useComposerToolbarNarrow } from './ComposerToolbarContext';
 
 const ACCESS_MODE_OPTIONS: Array<{
   label: string;
@@ -31,7 +30,6 @@ export function AccessModePopover() {
   const { t } = useTranslation('composer');
   const { accessMode, setAccessMode, collaborationMode, setCollaborationMode } = useConfigStore();
   const { triggerInputFocus } = useCodexStore();
-  const isNarrow = useComposerToolbarNarrow();
 
   const closeAndFocus = () => {
     triggerInputFocus();
@@ -47,10 +45,12 @@ export function AccessModePopover() {
         <Button
           variant="ghost"
           size="sm"
-          className={`h-8 gap-2 px-2 font-normal ${selected.textColor} hover:bg-accent`}
+          className={`h-8 shrink-0 gap-2 whitespace-nowrap px-2 font-normal ${selected.textColor} hover:bg-accent`}
+          title={t(displayLabel)}
+          aria-label={t(displayLabel)}
         >
-          <DisplayIcon className="h-4 w-4" />
-          {!isNarrow && <span className="text-xs">{t(displayLabel)}</span>}
+          <DisplayIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span data-toolbar-approval-label="" className="text-xs">{t(displayLabel)}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64" align="start">

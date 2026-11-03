@@ -10,7 +10,7 @@ import { historyEventKey } from '../stores/threadHistory';
  */
 export type RenderItem =
   | { kind: 'event'; event: ServerNotification; index: number }
-  | { kind: 'chain'; key: string; turnId: string; steps: StepEntry[] }
+  | { kind: 'chain'; key: string; turnId: string; turnRunning: boolean; steps: StepEntry[] }
   | {
       kind: 'turn';
       key: string;
@@ -175,7 +175,10 @@ export function deriveRenderItems(events: ServerNotification[]): RenderItem[] {
         // existing step instead of moving it below messages that arrived meanwhile.
         const completed = completedSteps.get(key);
         if (!chain || chain.turnId !== turnId) {
-          chain = { kind: 'chain', key: `chain-${turnId}-${item.id}`, turnId, steps: [] };
+          chain = {
+            kind: 'chain', key: `chain-${turnId}-${item.id}`, turnId,
+            turnRunning: !completedTurnIds.has(turnId), steps: [],
+          };
           items.push(chain);
         }
         // A step that never completed is only live while its turn is still open.

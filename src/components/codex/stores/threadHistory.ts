@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { ServerNotification } from '@/bindings';
 import type { ThreadItem } from '@/bindings/v2';
 import { type HistoryPage, historyPage } from '@/services/apiAdapt/history';
+import { usePendingSteers } from './usePendingSteers';
 
 export const HISTORY_CACHE_PAGES = 3;
 export const LIVE_EVENT_LIMIT = 400;
@@ -97,6 +98,7 @@ export const useThreadHistory = create<HistoryStore>((set, get) => {
       try {
         const fresh = await historyPage(id);
         if (get().threads[id]?.generation !== before.generation) return;
+        usePendingSteers.getState().reconcile(id, fresh.entries);
         before = {
           ...before,
           pages: [fresh],
@@ -124,6 +126,7 @@ export const useThreadHistory = create<HistoryStore>((set, get) => {
       const page = await historyPage(id, cursor);
       const current = get().threads[id];
       if (!current || current.generation !== before.generation) return;
+      usePendingSteers.getState().reconcile(id, page.entries);
       const cursors = [...current.cursors];
       cursors[index] = page.reloadCursor ?? cursor;
       const pages = direction === 'older' ? [...current.pages, page] : [page, ...current.pages];
@@ -171,7 +174,8 @@ export const useThreadHistory = create<HistoryStore>((set, get) => {
           threads: { ...s.threads, [id]: { ...current, loading: false, error: String(error) } },
         };
       }),
-    reset: (id, page) =>
+    reset: (id, page) => {
+      usePendingSteers.getState().reconcile(id, page.entries);
       set((s) => {
         const threads = { ...s.threads };
         delete threads[id];
@@ -186,7 +190,8 @@ export const useThreadHistory = create<HistoryStore>((set, get) => {
           generation: ++generation,
         };
         return { threads };
-      }),
+      });
+    },
     older: (id) => load(id, 'older'),
     newer: (id) => load(id, 'newer'),
     latest: async (id) => {

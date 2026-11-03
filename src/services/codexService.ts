@@ -26,6 +26,7 @@ import {
   useThreadHistory,
 } from '@/components/codex/stores/threadHistory';
 import { useSessionTools } from '@/components/codex/stores/useSessionTools';
+import { usePendingSteers } from '@/components/codex/stores/usePendingSteers';
 import { useThreadModels } from '@/components/codex/stores/useThreadModels';
 import {
   isWriterConflict,
@@ -554,19 +555,23 @@ export const codexService = {
     }
   },
   async turnSteer(threadId: string, expectedTurnId: string, input: string, images: string[] = []) {
+    const userInputs = buildUserInputs(input, images);
+    const pending = usePendingSteers.getState();
+    const pendingId = pending.begin(threadId, expectedTurnId, userInputs);
     try {
-      const userInputs = buildUserInputs(input, images);
-
       await requireThreadModel(threadId);
       requireSavedTools(threadId);
       const response = await turnSteer({
         threadId,
         expectedTurnId,
+        clientUserMessageId: pendingId,
         input: userInputs,
       });
 
+      pending.update(pendingId, 'accepted');
       return response;
     } catch (error: unknown) {
+      pending.update(pendingId, 'failed', error instanceof Error ? error.message : String(error));
       console.error('[CodexService] turnSteer error:', error);
       throw error;
     }

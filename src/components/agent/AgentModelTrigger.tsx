@@ -1,4 +1,4 @@
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Cpu } from 'lucide-react';
 import { forwardRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useComposerModel } from '@/components/codex/hooks/useComposerModel';
@@ -28,6 +28,8 @@ export const AgentModelTrigger = forwardRef<HTMLButtonElement, React.ComponentPr
       : codexReasoningEffort !== 'none'
         ? codexReasoningEffort
         : undefined;
+    const effortLabel = effort ? t(`effort.${effort}`, { defaultValue: effort }) : undefined;
+    const description = effortLabel ? `${label} · ${effortLabel}` : label;
 
     return (
       <Button
@@ -36,18 +38,21 @@ export const AgentModelTrigger = forwardRef<HTMLButtonElement, React.ComponentPr
         size="sm"
         // Button size sm sets has-[>svg]:px-2.5 (the chevron is a direct svg child), which outranks a plain pl/pr,
         // so the padding has to be set with the same variant. Left 4px, right 6px.
-        className="h-8 gap-2 has-[>svg]:pl-1 has-[>svg]:pr-1.5 border border-transparent transition-all hover:border-input hover:bg-accent/50"
+        className="h-8 shrink-0 gap-2 whitespace-nowrap has-[>svg]:pl-1 has-[>svg]:pr-1.5 border border-transparent hover:border-input hover:bg-accent/50"
         {...props}
         disabled={pending || props.disabled}
         aria-busy={pending}
+        aria-label={props['aria-label'] ?? description}
+        title={props.title ?? description}
       >
-        <div className="flex items-center gap-1.5 text-xs text-foreground">
+        <Cpu data-toolbar-model-icon="" className="hidden h-4 w-4 shrink-0" aria-hidden="true" />
+        <div data-toolbar-model-details="" className="flex shrink-0 items-center gap-1.5 text-xs text-foreground">
           <span className="font-medium max-w-[120px] truncate leading-none py-0.5 -translate-y-px">
             {label}
           </span>
           {effort && (
             <span className="bg-muted px-1.5 py-0.5 rounded text-[10px] font-mono capitalize text-muted-foreground border">
-              {t(`effort.${effort}`, { defaultValue: effort })}
+              {effortLabel}
             </span>
           )}
         </div>

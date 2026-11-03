@@ -45,7 +45,7 @@ export const UserMessageItem = ({
   return (
     <div className="flex justify-end min-w-0">
       <div className="group flex w-full min-w-0 max-w-full flex-col items-end gap-1">
-        <div className="box-border flex w-fit min-w-0 max-w-full self-end flex-col gap-2 break-words rounded-md border bg-gray-100 p-2 dark:bg-gray-700">
+        <div data-chat-user-bubble="" className="box-border flex w-fit min-w-0 max-w-full self-end flex-col gap-2 break-words rounded-[20px] bg-[#f2f2f2] px-[18px] py-3 dark:bg-[#303030]">
           {(images.length > 0 || localImages.length > 0) && (
             <div className="flex flex-wrap gap-2">
               {images.map((src, index) => (

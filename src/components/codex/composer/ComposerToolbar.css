@@ -1,0 +1,17 @@
+[data-composer-toolbar] {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+[data-composer-toolbar][data-toolbar-level="1"] [data-toolbar-approval-label],
+[data-composer-toolbar][data-toolbar-level="2"] [data-toolbar-approval-label],
+[data-composer-toolbar][data-toolbar-level="3"] [data-toolbar-approval-label],
+[data-composer-toolbar][data-toolbar-level="2"] [data-toolbar-metric-label],
+[data-composer-toolbar][data-toolbar-level="3"] [data-toolbar-metric-label],
+[data-composer-toolbar][data-toolbar-level="3"] [data-toolbar-model-details] {
+  display: none;
+}
+
+[data-composer-toolbar][data-toolbar-level="3"] [data-toolbar-model-icon] {
+  display: block;
+}

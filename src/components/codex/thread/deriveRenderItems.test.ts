@@ -30,6 +30,19 @@ const message = (id: string, text: string, turnId = 'turn1') =>
   itemEvent('item/completed', { type: 'agentMessage', id, text }, turnId);
 
 describe('deriveRenderItems turn folding', () => {
+  it('keeps work open between completed steps and interim replies until its turn ends', () => {
+    const events = [user(), reasoning('r1'), reasoning('r2'), message('progress', 'Checking')];
+    const chains = deriveRenderItems(events).filter((item) => item.kind === 'chain');
+    expect(chains).toHaveLength(1);
+    expect(chains[0].turnRunning).toBe(true);
+    expect(chains[0].steps.every((step) => !step.running)).toBe(true);
+    const interrupted = deriveRenderItems([...events, turnCompleted('turn1', 'interrupted')]);
+    expect(interrupted.filter((item) => item.kind === 'chain')[0].turnRunning).toBe(false);
+    const completed = deriveRenderItems([...events, turnCompleted('turn1')]);
+    const folded = completed.find((item) => item.kind === 'turn');
+    expect(folded?.items.filter((item) => item.kind === 'chain')[0].turnRunning).toBe(false);
+  });
+
   it('folds a completed turn between the user message and the final answer', () => {
     const items = deriveRenderItems([
       user(),

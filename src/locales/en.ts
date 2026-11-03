@@ -20,6 +20,16 @@ export const en = {
     donate: 'Donate',
   },
   settings: {
+    lan: {
+      checking: 'Checking status…', statusUnavailable: 'Status unavailable', refresh: 'Refresh status',
+      title: 'Phone · LAN access', enabled: 'Enabled', disabled: 'Disabled',
+      stop: 'Disable and disconnect devices', start: 'Enable',
+      addressLabel: "This computer's LAN IPv4 address", addressPlaceholder: 'LAN address, e.g. 192.168.1.10',
+      description: 'Connect your phone and computer to the same LAN. Trust this computer’s certificate on your phone before connecting. Keep Lemma running while using your phone.',
+      certificate: 'Download phone certificate', generateCode: 'Generate a two-minute pairing code',
+      codeLabel: 'Pairing code', copyCode: 'Copy pairing code', help: 'First connection help',
+      helpText: 'iPhone: transfer and install the certificate profile, then enable full trust under About → Certificate Trust Settings. Android: install the CA certificate in Security settings. Only trust the certificate obtained from this computer. Complete certificate setup if the browser rejects the connection. Enabled LAN access and paired devices survive restarts. Disabling LAN access revokes all paired devices. Allow firewall access only on private networks.',
+    },
     reviewer: {
       unavailable: 'Unavailable (manual approval required)',
       title: 'Main and approval models',
@@ -157,6 +167,11 @@ export const en = {
     unknownError: 'Unknown',
   },
   composer: {
+    steerSending: 'Sending…',
+    steerWaiting: 'Waiting to be received',
+    steerFailed: 'Message not sent',
+    steerRetry: 'Retry',
+    steerDismiss: 'Dismiss',
     plan: 'Plan',
     planMode: 'Plan Mode',
     askApproval: 'Ask for approval',

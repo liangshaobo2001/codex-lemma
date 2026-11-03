@@ -326,7 +326,7 @@ export function ThreadScroller({
           )}
           <MessageScrollerContent
             ref={contentRef}
-            className={cn(THREAD_COLUMN, 'gap-2 py-4 *:empty:hidden', contentClassName)}
+            className={cn(THREAD_COLUMN, 'gap-9 py-4 *:empty:hidden [&_:is(h1,h2,h3)]:font-semibold [&_:is(h1,h2,h3)]:tracking-[-0.01em]', contentClassName)}
           >
             {children}
             {onLoadNewer && (

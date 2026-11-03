@@ -118,7 +118,7 @@ export const ComposerEditor = forwardRef<ComposerEditorHandle, ComposerEditorPro
           <PlainTextPlugin
             contentEditable={
               <ContentEditable
-                className="w-full min-h-[44px] bg-transparent text-base md:text-sm outline-none whitespace-pre-wrap break-words"
+                className="w-full min-h-[76px] leading-[1.65] bg-transparent text-base md:text-sm outline-none whitespace-pre-wrap break-words"
                 aria-placeholder={placeholder}
                 placeholder={
                   <div className="pointer-events-none absolute top-0 left-0 text-base text-muted-foreground md:text-sm">

@@ -31,37 +31,40 @@ export function ThroughputWidget() {
   const cached = usage ? usage.cachedInputTokens + (extra?.cachedInputTokens ?? 0) : undefined;
   const input = usage ? usage.inputTokens + (extra?.inputTokens ?? 0) : undefined;
   const hit = extra?.complete === false ? null : formatCacheHit(cached, input);
+  const speedLabel = `${tps === null ? '—' : tps} tok/s`;
+  const speedTitle = `${speedLabel} · ${t(showingPrevious ? 'widgets.speedPreviousTitle' : 'widgets.speedTitle', {
+    ttft,
+    requests: reading?.requests ?? 0,
+  })}`;
+  const cacheLabel = hit === null ? t('widgets.cacheUnknown') : t('widgets.cacheHit', { hit });
+  const cacheTitle = `${cacheLabel} · ${hit === null
+    ? t('widgets.cacheUnavailable')
+    : t('widgets.cacheTitle', { cached, input })}`;
 
   if (!showSpeed && !showCache) return null;
 
   return (
-    <div className="flex items-center gap-3 text-xs tabular-nums text-muted-foreground">
+    <div className="flex shrink-0 items-center gap-3 whitespace-nowrap text-xs tabular-nums text-muted-foreground">
       {showSpeed && (
         <span
-          className="flex items-center gap-1"
-          title={t(showingPrevious ? 'widgets.speedPreviousTitle' : 'widgets.speedTitle', {
-            ttft,
-            requests: reading?.requests ?? 0,
-          })}
+          className="flex shrink-0 items-center gap-1 whitespace-nowrap"
+          title={speedTitle}
+          role="img"
+          aria-label={speedTitle}
         >
-          <Gauge className="h-3.5 w-3.5" />
-          {tps === null ? '—' : tps} tok/s
+          <Gauge className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span data-toolbar-metric-label="" className="shrink-0 whitespace-nowrap" title={speedTitle}>{speedLabel}</span>
         </span>
       )}
       {showCache && (
         <span
-          className="flex items-center gap-1"
-          title={
-            hit === null
-              ? t('widgets.cacheUnavailable')
-              : t('widgets.cacheTitle', {
-                  cached,
-                  input,
-                })
-          }
+          className="flex shrink-0 items-center gap-1 whitespace-nowrap"
+          title={cacheTitle}
+          role="img"
+          aria-label={cacheTitle}
         >
-          <Database className="h-3.5 w-3.5" />
-          {hit === null ? t('widgets.cacheUnknown') : t('widgets.cacheHit', { hit })}
+          <Database className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span data-toolbar-metric-label="" className="shrink-0 whitespace-nowrap" title={cacheTitle}>{cacheLabel}</span>
         </span>
       )}
     </div>

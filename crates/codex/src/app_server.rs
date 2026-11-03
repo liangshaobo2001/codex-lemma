@@ -16,6 +16,7 @@ use codex_finder::discover_codex_command;
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 pub struct CodexAppServer {
+    pub remote_approvals: Mutex<HashMap<String, Value>>,
     pub reviewer: Arc<crate::reviewer::Runtime>,
     pub maintenance: tokio::sync::RwLock<()>,
     pub tool_discovery: crate::tool_discovery::gateway::Gateway,
@@ -119,8 +120,12 @@ impl CodexAppServer {
     }
 
     pub async fn send_response(&self, id: RequestId, result: Value) -> Result<(), String> {
-        self.write_message(serde_json::json!({ "id": id, "result": result }))
-            .await
+        let key = serde_json::to_string(&id).map_err(|e| e.to_string())?;
+        let mut approvals = self.remote_approvals.lock().await;
+        if !approvals.contains_key(&key) { return Err("This approval has already been answered or is no longer pending".into()); }
+        self.write_message(serde_json::json!({ "id": id, "result": result })).await?;
+        approvals.remove(&key);
+        Ok(())
     }
 
     pub async fn send_notification(
@@ -253,6 +258,7 @@ pub async fn connect_codex_with_tool_policy(event_sink: Arc<dyn EventSink>, tool
     ).await?;
     tool_discovery.set_reviewer(reviewer.target.clone()).await;
     let client = Arc::new(CodexAppServer {
+        remote_approvals: Mutex::new(HashMap::new()),
         reviewer,
         maintenance: tokio::sync::RwLock::new(()),
         tool_discovery,
@@ -311,9 +317,19 @@ pub async fn connect_codex_with_tool_policy(event_sink: Arc<dyn EventSink>, tool
                     }
                 }
                 Some(ServerMessage::Request { id, method, params }) => {
+                    if matches!(method.as_str(), "item/commandExecution/requestApproval" | "item/fileChange/requestApproval" | "item/tool/requestUserInput" | "mcpServer/elicitation/request" | "item/permissions/requestApproval") {
+                        client_clone.remote_approvals.lock().await.insert(serde_json::to_string(&id).unwrap_or_default(), serde_json::json!({"requestId":id,"method":method,"params":params}));
+                    }
                     handle_server_request(&event_sink_clone, id, &method, params).await;
                 }
                 Some(ServerMessage::Notification { mut raw, .. }) => {
+                    if raw["method"] == "serverRequest/resolved" && let Some(id) = raw["params"].get("requestId") {
+                        client_clone.remote_approvals.lock().await.remove(&id.to_string());
+                    }
+                    if matches!(raw["method"].as_str(), Some("turn/completed" | "thread/closed")) {
+                        let thread = raw["params"]["threadId"].as_str();
+                        client_clone.remote_approvals.lock().await.retain(|_, approval| approval["params"]["threadId"].as_str() != thread);
+                    }
                     if let Some(metrics) = &request_metrics && let Ok(mut metrics) = metrics.lock() {
                         metrics.notification(&raw);
                     }

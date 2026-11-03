@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## [0.1.19] - 2026-11-03
+
+- Keep Working lists expanded between tool calls until the entire turn ends, while respecting manual expansion and folding.
+- Keep the composer appearance unchanged on focus by removing the extra outer focus ring while retaining its normal border.
+- Use a unified phone composer with a bottom-right circular Send/Stop action, flat assistant messages and neutral user bubbles. Refine the desktop interface with: softer user bubbles and composer, lighter sidebar/header controls and relaxed transcript spacing.
+- Keep phone tool calls and reasoning in lazy, collapsed activity groups, stream only assistant replies, and retain a sticky top-left Back button with browser/system Back navigation.
+- Persist LAN device authorization across restarts using token hashes, restore explicitly enabled listeners on the same address, and revoke saved devices when LAN access is disabled. The previous in-memory preview needs one final pairing after upgrading.
+- Match phone Recents to desktop ordering, deduplicate IDs across refreshes and pages without merging same-name chats, and show steer submissions immediately with exact client-ID reconciliation.
+- Keep streamed reasoning collapsed by default with a single-line live preview. Preserve manual expansion through stream completion instead of automatically opening and collapsing the reasoning body.
+- Progressively collapse composer toolbar labels as space runs out: approval first, then speed/cache, then model and effort. Keep icons, accessible names and tooltips, and retain send/stop/queue controls.
+
 ## [0.1.18] - 2026-10-30
 
 - Raise the local Responses and compaction request-body limit from 16 MiB to 1 GiB so retained image history can pass through the adapter. Add coverage for requests above the old limit and enforcement of the new boundary.

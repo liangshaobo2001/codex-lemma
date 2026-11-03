@@ -22,7 +22,7 @@ Codex Lemma 是一个开源的 Windows 桌面 Codex CLI 图形界面。对话、
 - MCP 连接器、技能、计划任务、待办事项和本机用量统计。
 - 中英文界面、明暗主题、紧凑的 Windows 无边框窗口。
 
-此分支移除了上游 Bots、Claude Code、ACP、远程/移动界面、Publish、遥测和自动更新流程。部分内部 Rust crate 仍保留 Codexia 名称。
+此分支移除了上游 Bots、Claude Code、ACP、Publish、遥测和自动更新流程。另提供默认关闭的[局域网手机入口](docs/LAN.md)，支持继续已有会话、发送消息和处理审批。部分内部 Rust crate 仍保留 Codexia 名称。
 
 ## 安装与连接本机模型
 
@@ -49,7 +49,7 @@ Lemma 自身元数据保存在 `%USERPROFILE%\.codex-lemma`；WebView 数据位�
 
 ## 首发范围
 
-目前支持 Windows x64。“设置 → 通用”提供手动更新，下载和安装分别点击，安装包通过更新签名验证。macOS/Linux 安装包、后台自动更新及远程访问不在验证范围内。Windows 程序尚无 Authenticode 签名，更新签名不会消除 Unknown Publisher 提示。部分功能依赖所附 CLI 与模型端点的支持，历史轮次读取也可能受 CLI 的 app-server API 限制。
+目前支持 Windows x64。“设置 → 通用”提供手动更新，下载和安装分别点击，安装包通过更新签名验证。局域网手机入口属于自用预览版，首次连接需手动信任电脑证书；自动化浏览器测试不涵盖真实手机的系统证书安装。macOS/Linux 安装包、后台自动更新及公网远程访问不在验证范围内。Windows 程序尚无 Authenticode 签名，更新签名不会消除 Unknown Publisher 提示。部分功能依赖所附 CLI 与模型端点的支持，历史轮次读取也可能受 CLI 的 app-server API 限制。
 
 源码构建与验证见 [CONTRIBUTING.md](CONTRIBUTING.md)，打包发布见[发布说明](docs/RELEASING.md)，改动见 [CHANGELOG.md](CHANGELOG.md)。
 

@@ -133,9 +133,10 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
     const runningTurnId = getRunningTurnId(currentThreadId);
     if (threadStatus?.type === 'active' && currentThreadId && runningTurnId) {
       try {
-        await codexService.turnSteer(currentThreadId, runningTurnId, text, images);
+        const sending = codexService.turnSteer(currentThreadId, runningTurnId, text, images);
         setInputValue('');
         setImages([]);
+        await sending;
       } catch (error) {
         console.error(error);
       }
@@ -303,7 +304,7 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
         )}
         <QueuedMessages threadId={currentThreadId} running={threadStatus?.type === 'active'} />
 
-        <div className="border rounded-xl bg-background shadow-sm focus-within:ring-1 focus-within:ring-ring transition-all overflow-hidden">
+        <div data-chat-composer="" className="border border-[#e4e4e4] dark:border-[#414141] rounded-[24px] bg-background shadow-[0_2px_12px_#00000008] dark:shadow-[0_2px_12px_#00000015] transition-all overflow-hidden">
           {paste.pending && (
             <output className="block px-3 pt-2 text-xs text-muted-foreground">
               {t('composer.savingAttachments', { defaultValue: 'Adding attachments…' })}
@@ -358,9 +359,9 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
             </div>
           )}
 
-          <div className="flex items-center justify-between px-1 bg-muted/20 border-t">
-            <ComposerToolbarProvider className="flex items-center justify-between w-full">
-              <div className="flex items-center">
+          <div className="flex items-center justify-between px-1.5 pt-1 pb-1.5 bg-transparent border-t border-transparent">
+            <ComposerToolbarProvider className="flex w-full min-w-0 items-center justify-between gap-2">
+              <div className="flex shrink-0 items-center">
                 <ComposerMenu
                   onImagesSelected={(paths) => setImages((prev) => [...prev, ...paths])}
                   onFilesSelected={appendFileLinks}
@@ -418,7 +419,7 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
                   </>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2">
                 {widgets.cost && <ThreadCostWidget />}
                 <ThroughputWidget />
                 {widgets.context && <ContextWindowWidget />}
@@ -463,7 +464,7 @@ export function Composer({ overrideSend, onAfterSend }: ComposerProps) {
                       modelBlocked || paste.pending || (!inputValue.trim() && images.length === 0)
                     }
                     size="icon"
-                    className="h-10 w-10 md:h-8 md:w-8 rounded-full"
+                    className="h-10 w-10 md:h-8 md:w-8 rounded-full bg-[#242424] text-white hover:bg-zinc-700 dark:bg-[#eee] dark:text-[#202020] dark:hover:bg-zinc-200"
                   >
                     <ArrowUp className="w-4 h-4" />
                   </Button>

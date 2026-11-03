@@ -49,6 +49,8 @@ fn constant_time_eq(a: &str, b: &str) -> bool {
 }
 
 impl DeviceToken {
+    #[cfg(test)]
+    pub(crate) fn for_test() -> Self { Self { token: Arc::new(generate_token()) } }
     /// Loads the persisted token, generating and storing one on first run.
     pub fn load_or_create() -> Result<Self, String> {
         let path = token_path()?;

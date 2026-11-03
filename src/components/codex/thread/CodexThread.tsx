@@ -11,6 +11,7 @@ import { EventItem } from '../items';
 import { ApprovalItem } from '../items/ApprovalItem';
 import { ElicitationItem } from '../items/ElicitationItem';
 import { PermissionsItem } from '../items/PermissionsItem';
+import { PendingSteerMessages } from '../items/PendingSteerMessages';
 import { RequestUserInputItem } from '../items/RequestUserInputItem';
 import { formatStepDuration } from '../items/stepItems';
 import { ThreadStepChain } from '../items/ThreadStepChain';
@@ -59,7 +60,10 @@ export function CodexThread({ threadId }: CodexThreadProps = {}) {
     const rendered: Array<{ key: string; content: ReactNode }> = [];
     for (const item of items) {
       if (item.kind === 'chain') {
-        rendered.push({ key: item.key, content: <ThreadStepChain steps={item.steps} /> });
+        rendered.push({
+          key: item.key,
+          content: <ThreadStepChain steps={item.steps} turnRunning={item.turnRunning} />,
+        });
         continue;
       }
 
@@ -150,6 +154,7 @@ export function CodexThread({ threadId }: CodexThreadProps = {}) {
           </MessageScrollerItem>
         ))}
 
+        <PendingSteerMessages threadId={activeThreadId} />
         <WorkingIndicator
           turnTiming={turnTiming}
           retryNotice={retryNotice}

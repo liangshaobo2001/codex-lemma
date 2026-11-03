@@ -37,7 +37,7 @@ export function AgentViewHeader() {
 
   return (
     <div
-      className="flex items-center justify-between h-11 border-b border-white/10 bg-sidebar/20"
+      className="flex items-center justify-between h-11 border-b border-white/10 bg-sidebar/20 [&_button]:shadow-none [&_button]:rounded-[10px]"
       data-tauri-drag-region
     >
       {/* pl-3: with the sidebar open nothing else pads this row, and the project badge touched the divider */}

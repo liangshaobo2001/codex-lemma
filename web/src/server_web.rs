@@ -39,6 +39,7 @@ where
         port,
     );
 
+    let restore_state = state.clone();
     let app = create_router(state);
     // A just-exited previous process can hold this port for a moment after
     // its own process has already disappeared (the OS hasn't released the
@@ -60,6 +61,10 @@ where
             Err(e) => return Err(format!("Failed to bind {addr}: {e}")),
         }
     };
+
+    if port == 7419 && matches!(host, "127.0.0.1" | "localhost") {
+        crate::lan::restore(restore_state).await;
+    }
 
     // The bound address is what actually matters: binding to a tailnet IP that
     // Tailscale later tears down leaves a socket nothing can connect to.

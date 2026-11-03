@@ -85,6 +85,18 @@ describe('Composer while a turn runs', () => {
     expect(turnSteer).not.toHaveBeenCalled();
   });
 
+  it('clears a steer draft immediately, before the acknowledgement, and preserves newly typed input', async () => {
+    setThread(true);
+    let finish!: ()=>void;
+    turnSteer.mockImplementationOnce(()=>new Promise<void>(resolve=>{finish=resolve}));
+    render(<Composer />);
+    fireEvent.submit(screen.getByLabelText('Message').closest('form')!);
+    expect(turnSteer).toHaveBeenCalledWith('t1','turn-1','follow up',[]);
+    expect(useInputStore.getState().inputValue).toBe('');
+    fireEvent.change(screen.getByLabelText('Message'),{target:{value:'Next draft'}});
+    finish();await waitFor(()=>expect(useInputStore.getState().inputValue).toBe('Next draft'));
+  });
+
   it('keeps the draft when the server rejects the queued message', async () => {
     setThread(true);
     threadQueueAdd.mockRejectedValue(new Error('queue unavailable'));
